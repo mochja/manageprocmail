@@ -1,0 +1,10 @@
+{
+    "name": "mochja/manageprocmail",
+    "authors": [
+        {
+            "name": "Ján Mochňak",
+            "email": "janmochnak@icloud.com"
+        }
+    ],
+    "require": {}
+}
