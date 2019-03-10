@@ -7,7 +7,7 @@
 <body class="iframe<roundcube:exp expression="env:task != 'mail' ? ' floatingbuttons' : ' mail'" />">
 
 <roundcube:if condition="env:task != 'mail'" />
-<div id="filter-title" class="boxtitle"><roundcube:label name="managesieve.filterdef" /></div>
+<div id="filter-title" class="boxtitle"><roundcube:label name="manageprocmail.filterdef" /></div>
 <roundcube:endif />
 
 <div id="filter-form" class="boxcontent">
@@ -16,10 +16,10 @@
 <roundcube:if condition="env:task != 'mail'" />
 <div id="footer">
 <div class="footerleft formbuttons floating">
-<roundcube:button command="plugin.managesieve-save" type="input" class="button mainaction" label="save" />
+<roundcube:button command="plugin.manageprocmail-save" type="input" class="button mainaction" label="save" />
 <label for="disabled">
 <input type="checkbox" id="disabled" name="_disabled" value="1" />
-<roundcube:label name="managesieve.filterdisabled" />
+<roundcube:label name="manageprocmail.filterdisabled" />
 </label>
 </div>
 </div>
