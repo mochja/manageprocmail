@@ -3,7 +3,7 @@
 class manageprocmail extends rcube_plugin
 {
 
-    /** @var rcube */
+    /** @var rcmail */
     private $rc;
 
 
@@ -15,7 +15,6 @@ class manageprocmail extends rcube_plugin
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
 
         $this->register_action('plugin.manageprocmail-action', array($this, 'manageprocmail_actions2'));
-
 
         if ($this->rc->task == 'settings') {
             $this->add_hook('settings_actions', array($this, 'settings_actions'));
@@ -43,21 +42,66 @@ class manageprocmail extends rcube_plugin
 
     function formedit($attrib)
     {
-        $attrib += ['id' => '123asdfasd'];
+        /** @var rcmail_output_html $output */
+        $output = $this->rc->output;
+        $attrib += ['id' => 'rule_1'];
 
-        $input = new html_inputfield(array('type' => 'text', 'name' => '_name',
-            'id' => 'rcmanageprocmalx', 'size' => 30));
+        $form = new \Nette\Forms\Form();
+        $form->getElementPrototype()->addAttributes($attrib);
 
-        $this->rc->output->add_gui_object('filterform', $attrib['id']);
+        // rule
+        $form->addRadioList('rule_type', '', [
+            'all',
+            'any',
+            'none'
+        ]);
 
-        $out = $this->rc->output->form_tag(array(
-                'action' => $this->rc->url(array('action' => $this->rc->action, 'a' => 'import')),
-                'method' => 'post',
-                'enctype' => 'multipart/form-data') + $attrib,
-            $input->show()
-        );
+        $form->addSelect('header', null, [
+            'subject',
+            'sender',
+        ]);
 
-        return $out;
+        $form->addSelect('action', null, [
+            'subject',
+            'sender',
+        ]);
+
+        $form->addText('against');
+
+        // rule end
+
+        $form->addCheckboxList('actions', '', [
+            'delete',
+            'mark_as_read',
+            'forward_to',
+            'move_to',
+            'copy_to',
+        ]);
+
+//        $input = new html_inputfield(array('type' => 'text', 'name' => '_name',
+//            'id' => 'rcmanageprocmalx', 'size' => 30));
+//
+//        $match_all_option = new html_radiobutton([
+//            'id' => '25434',
+//            'name' => 'filter_type',
+//        ]);
+//
+//        $match_all_option_label = html::label(['for' => '25434'], $match_all_option->show() . 'Hello there');
+
+        $output->add_gui_object('filterform', $attrib['id']);
+
+//        $out = $output->form_tag(array(
+//                'action' => $this->rc->url(array('action' => $this->rc->action, 'a' => 'import')),
+//                'method' => 'post',
+//                'enctype' => 'multipart/form-data') + $attrib,
+//            $match_all_option_label . $input->show()
+//        );
+
+        $form->setAction($this->rc->url(array('action' => $this->rc->action, 'a' => 'import')));
+
+        ob_start();
+        $form->render();
+        return ob_get_clean();
     }
 
 
