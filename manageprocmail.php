@@ -82,6 +82,8 @@ class manageprocmail extends rcube_plugin
 
         $form->setAction($this->rc->url(array('action' => $this->rc->action, 'a' => 'import')));
 
+        $output->command('plugin.manageprocmail-save', array('message' => 'done.'));
+
         return (string) $form;
     }
 
@@ -148,5 +150,11 @@ class manageprocmail extends rcube_plugin
         return [
             ['id' => '12', 'name' => 'Rule A', 'class' => '']
         ];
+    }
+
+
+    function manageprocmail_save()
+    {
+
     }
 }
