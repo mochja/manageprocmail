@@ -78,30 +78,11 @@ class manageprocmail extends rcube_plugin
             'copy_to',
         ]);
 
-//        $input = new html_inputfield(array('type' => 'text', 'name' => '_name',
-//            'id' => 'rcmanageprocmalx', 'size' => 30));
-//
-//        $match_all_option = new html_radiobutton([
-//            'id' => '25434',
-//            'name' => 'filter_type',
-//        ]);
-//
-//        $match_all_option_label = html::label(['for' => '25434'], $match_all_option->show() . 'Hello there');
-
         $output->add_gui_object('filterform', $attrib['id']);
-
-//        $out = $output->form_tag(array(
-//                'action' => $this->rc->url(array('action' => $this->rc->action, 'a' => 'import')),
-//                'method' => 'post',
-//                'enctype' => 'multipart/form-data') + $attrib,
-//            $match_all_option_label . $input->show()
-//        );
 
         $form->setAction($this->rc->url(array('action' => $this->rc->action, 'a' => 'import')));
 
-        ob_start();
-        $form->render();
-        return ob_get_clean();
+        return (string) $form;
     }
 
 
