@@ -49,6 +49,9 @@ class manageprocmail extends rcube_plugin
         $form = new \Nette\Forms\Form();
         $form->getElementPrototype()->addAttributes($attrib);
 
+
+
+
         // rule
         $form->addRadioList('rule_type', '', [
             'all',
