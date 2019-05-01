@@ -42,36 +42,45 @@ class manageprocmail extends rcube_plugin
     }
 
 
-    function create_form($attrib = []) {
+    function create_form($rules = []) {
         $form = new \Nette\Forms\Form();
-        $form->getElementPrototype()->addAttributes($attrib);
+        $form->getElementPrototype()->setAttribute('class', 'propform');
 
-        // rule
-        $form->addRadioList('rule_type', '', [
+        $form->addRadioList('filter_op', 'Match all incoming emails by following', [
             'all',
             'any',
             'none'
         ]);
 
-        $form->addSelect('rule_header', null, [
-            'subject',
-            'sender',
-        ]);
+        // rule
+        $rulesContainer = $form->addContainer('rule');
 
-        $form->addSelect('rule_action', null, [
-            'subject',
-            'sender',
-        ]);
+        foreach ($rules as $i => $rule) {
+            $ruleContainer = $rulesContainer->addContainer($i);
 
-        $form->addText('rule_against');
+            $ruleContainer->addSelect('rule_header', 'Header', [
+                'subject',
+                'sender',
+            ]);
 
-        $form->addCheckboxList('message_action', '', [
-            'delete',
-            'mark_as_read',
-            'forward_to',
-            'move_to',
-            'copy_to',
-        ]);
+            $ruleContainer->addSelect('rule_op', 'Operation', [
+                '==',
+                '!=',
+            ]);
+
+            $ruleContainer->addText('rule_op_against', 'Rule operation against');
+
+            $ruleContainer->addButton('remove', 'X');
+        }
+
+        $form->addCheckbox('message_action_delete', 'Delete');
+        $form->addCheckbox('message_action_mark_as_read', 'Mark as Read');
+        $form->addCheckbox('message_action_forward_to', 'Forward To');
+        $form->addCheckbox('message_action_move_to', 'Move To');
+        $form->addCheckbox('message_action_copy_to', 'Copy To');
+
+
+        $form->addCheckbox('filter_active', $this->gettext('manageprocmail.active'));
 
         $form->addSubmit('submit', 'Save')
             ->getControlPrototype()
@@ -87,7 +96,28 @@ class manageprocmail extends rcube_plugin
     function formedit($attrib)
     {
         if (isset($attrib['field'])) {
-            return (string) $this->form[$attrib['field']]->control;
+            $component = $this->form;
+            foreach (explode('.', $attrib['field']) as $path) {
+                $component = $component[$path];
+            }
+
+            if ($component instanceof Nette\Forms\Container) {
+                $table = \Nette\Utils\Html::el('table');
+                $table->setAttribute('class', 'propform');
+
+                foreach ($component->getComponents(false, \Nette\Forms\Container::class) as $c) {
+                    $row = \Nette\Utils\Html::el('tr');
+                    $row->addHtml(\Nette\Utils\Html::el('td')->addText('Rule ' . ($c->getName() + 1)));
+                    foreach ($c->getControls() as $ctr) {
+                        $row->addHtml(\Nette\Utils\Html::el('td')->addHtml($ctr->getControl()));
+                    }
+                    $table->addHtml($row);
+                }
+
+                return (string) $table;
+            }
+
+            return $component->control;
         } else if (isset($attrib['label'])) {
             return (string) $this->form[$attrib['label']]->label;
         } else if (isset($attrib['render'])) {
@@ -104,13 +134,21 @@ class manageprocmail extends rcube_plugin
     {
         Tracy\Debugger::barDump(func_get_args());
 
-        $this->form = $this->create_form();
+        $this->form = $form = $this->create_form([
+            1, 2, 3
+        ]);
+
+        $renderer = $form->getRenderer();
+
         $this->form->setAction($this->rc->url(array('action' => $this->rc->action)));
 
         if ($this->form->isSuccess()) {
             $values = $this->form->getValues(true);
 
             \Tracy\Debugger::barDump($values);
+            $values = $form->getHttpData($form::DATA_TEXT, 'sel[]');
+            \Tracy\Debugger::barDump($values);
+
         }
 
         $this->register_handler('filterform', array($this, 'formedit'));
@@ -158,7 +196,6 @@ class manageprocmail extends rcube_plugin
         $out = $this->rc->table_output($attrib, $result, $a_show_cols, 'id');
         $this->rc->output->add_gui_object('filterslist', $attrib['id']);
         $this->rc->output->include_script('list.js');
-
 
         return $out;
     }

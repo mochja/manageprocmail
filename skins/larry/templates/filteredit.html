@@ -14,20 +14,61 @@
     <roundcube:object name="plugin.filterform" render="begin" />
     <roundcube:object name="plugin.filterform" render="errors" />
 
-    <roundcube:object name="plugin.filterform" field="rule_type" />
-    <roundcube:object name="plugin.filterform" field="rule_header" />
-    <roundcube:object name="plugin.filterform" field="rule_action" />
-    <roundcube:object name="plugin.filterform" field="rule_against" />
-    <roundcube:object name="plugin.filterform" field="message_action" />
+    <fieldset>
+        <legend>ABS</legend>
+        <table class="propform">
+            <tr>
+                <td class="title">
+                    <roundcube:object name="plugin.filterform" label="filter_op" />
+                </td>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="filter_op" />
+                </td>
+            </tr>
+        </table>
+    </fieldset>
+
+    <fieldset>
+        <legend>Rules</legend>
+        <roundcube:object name="plugin.filterform" field="rule" />
+    </fieldset>
+
+    <fieldset>
+        <legend>Actions</legend>
+        <table class="propform">
+            <tr>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_delete"/>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_mark_as_read"/>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_forward_to"/>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_move_to"/>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_copy_to"/>
+                </td>
+            </tr>
+        </table>
+    </fieldset>
 
     <div id="footer">
         <div class="footerleft formbuttons floating">
             <roundcube:object name="plugin.filterform" field="submit" />
 
-            <label for="disabled">
-                <input type="checkbox" id="disabled" name="_disabled" value="1" />
-                <roundcube:label name="manageprocmail.filterdisabled" />
-            </label>
+            <roundcube:object name="plugin.filterform" field="filter_active"/>
         </div>
     </div>
     <roundcube:object name="plugin.filterform" render="end" />
