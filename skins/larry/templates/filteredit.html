@@ -11,17 +11,26 @@
 <roundcube:endif />
 
 <div id="filter-form" class="boxcontent">
-    <roundcube:object name="filterform" />
+    <roundcube:object name="plugin.filterform" render="begin" />
+    <roundcube:object name="plugin.filterform" render="errors" />
+
+    <roundcube:object name="plugin.filterform" field="rule_type" />
+    <roundcube:object name="plugin.filterform" field="rule_header" />
+    <roundcube:object name="plugin.filterform" field="rule_action" />
+    <roundcube:object name="plugin.filterform" field="rule_against" />
+    <roundcube:object name="plugin.filterform" field="message_action" />
 
     <div id="footer">
         <div class="footerleft formbuttons floating">
-            <roundcube:button command="plugin.manageprocmail-save" type="input" class="button mainaction" label="save" />
+            <roundcube:object name="plugin.filterform" field="submit" />
+
             <label for="disabled">
                 <input type="checkbox" id="disabled" name="_disabled" value="1" />
                 <roundcube:label name="manageprocmail.filterdisabled" />
             </label>
         </div>
     </div>
+    <roundcube:object name="plugin.filterform" render="end" />
 </div>
 
 </body>

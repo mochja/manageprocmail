@@ -6,6 +6,9 @@ class manageprocmail extends rcube_plugin
     /** @var rcmail */
     private $rc;
 
+    /** @var \Nette\Forms\Form */
+    private $form;
+
 
 
     function init()
@@ -39,18 +42,9 @@ class manageprocmail extends rcube_plugin
     }
 
 
-
-    function formedit($attrib)
-    {
-        /** @var rcmail_output_html $output */
-        $output = $this->rc->output;
-        $attrib += ['id' => 'rule_1'];
-
+    function create_form($attrib = []) {
         $form = new \Nette\Forms\Form();
         $form->getElementPrototype()->addAttributes($attrib);
-
-
-
 
         // rule
         $form->addRadioList('rule_type', '', [
@@ -59,21 +53,19 @@ class manageprocmail extends rcube_plugin
             'none'
         ]);
 
-        $form->addSelect('header', null, [
+        $form->addSelect('rule_header', null, [
             'subject',
             'sender',
         ]);
 
-        $form->addSelect('action', null, [
+        $form->addSelect('rule_action', null, [
             'subject',
             'sender',
         ]);
 
-        $form->addText('against');
+        $form->addText('rule_against');
 
-        // rule end
-
-        $form->addCheckboxList('actions', '', [
+        $form->addCheckboxList('message_action', '', [
             'delete',
             'mark_as_read',
             'forward_to',
@@ -81,22 +73,47 @@ class manageprocmail extends rcube_plugin
             'copy_to',
         ]);
 
-        $output->add_gui_object('filterform', $attrib['id']);
+        $form->addSubmit('submit', 'Save')
+            ->getControlPrototype()
+            ->addAttributes([
+                'class' => 'button mainaction'
+            ]);
 
-        $form->setAction($this->rc->url(array('action' => $this->rc->action, 'a' => 'import')));
+        return $form;
+    }
 
-        $output->command('plugin.manageprocmail-save', array('message' => 'done.'));
 
-        return (string) $form;
+
+    function formedit($attrib)
+    {
+        if (isset($attrib['field'])) {
+            return (string) $this->form[$attrib['field']]->control;
+        } else if (isset($attrib['label'])) {
+            return (string) $this->form[$attrib['label']]->label;
+        } else if (isset($attrib['render'])) {
+            $this->form->fireRenderEvents();
+            return $this->form->getRenderer()->render($this->form, $attrib['render']);
+        }
+
+        return (string) $this->form;
     }
 
 
 
     function manageprocmail_actions2()
     {
+        Tracy\Debugger::barDump(func_get_args());
 
-        $this->rc->output->add_handlers(array(
-            'filterform' => array($this, 'formedit')));
+        $this->form = $this->create_form();
+        $this->form->setAction($this->rc->url(array('action' => $this->rc->action)));
+
+        if ($this->form->isSuccess()) {
+            $values = $this->form->getValues(true);
+
+            \Tracy\Debugger::barDump($values);
+        }
+
+        $this->register_handler('filterform', array($this, 'formedit'));
 
         $this->rc->output->send('manageprocmail.filteredit');
     }

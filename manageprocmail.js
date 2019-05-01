@@ -30,10 +30,12 @@ if (window.rcmail) {
         }
     })
 
-    rcmail.addEventListener('plugin.manageprocmail-save', function (response) {
+    rcmail.register_button('plugin.manageprocmail-save', 'rcmbtn100', 'input');
+
+    rcmail.register_command('plugin.manageprocmail-save', function (response) {
         alert('ok')
         console.log(response)
-    });
+    }, true);
 }
 
 // Filter selection
