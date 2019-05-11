@@ -25,8 +25,7 @@
  * @property-read integer $end_day  End date (day).
  * @property-read integer $end_month  End date (month).
  * @property-read integer $end_year  End date (year).
- * @property-read array $exclude  Vacation address exclusions.
- * @property-write mixed $exclude  Vacation address exclusions (array or
+ * @property-read array|string $exclude  Vacation address exclusions.
  *                                 string).
  * @property boolean $ignore_list  Ignore list messages?
  * @property string $reason  Vacation reason.
@@ -103,20 +102,9 @@ implements Ingo_Rule_System
      */
     public function __get($name)
     {
-        global $injector;
-
         switch ($name) {
         case 'addresses':
             $addr = parent::__get($name);
-
-            try {
-                $addr = $injector->getInstance('Horde_Core_Hooks')->callHook(
-                    'vacation_addresses',
-                    'ingo',
-                    array(Ingo::getUser(), $addr)
-                );
-            } catch (Horde_Exception_HookNotSet $e) {}
-
             return $addr;
 
         case 'days':
@@ -218,18 +206,16 @@ implements Ingo_Rule_System
      */
     public static function vacationReason($reason, $start, $end)
     {
-        global $injector, $prefs;
+        $rcmail = rcmail::get_instance();
 
-        $format = $prefs->getValue('date_format');
-        $identity = $injector->getInstance('Horde_Core_Factory_Identity')
-            ->create(Ingo::getUser());
+        $identity = $rcmail->user->get_identity();
 
         $replace = array(
-            '%NAME%' => $identity->getName(),
-            '%EMAIL%' => $identity->getDefaultFromAddress(),
-            '%SIGNATURE%' => $identity->getValue('signature'),
-            '%STARTDATE%' => $start ? strftime($format, $start) : '',
-            '%ENDDATE%' => $end ? strftime($format, $end) : ''
+            '%NAME%' => $identity['name'],
+            '%EMAIL%' => rcube_utils::idn_to_utf8($identity['email']),
+            '%SIGNATURE%' => $identity['signature'],
+            '%STARTDATE%' => $start ? $rcmail->format_date($start, $rcmail->config->get('date_long', 'Y-m-d H:i')) : '',
+            '%ENDDATE%' => $end ? $rcmail->format_date($end, $rcmail->config->get('date_long', 'Y-m-d H:i')) : ''
         );
 
         return str_replace(

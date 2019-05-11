@@ -22,6 +22,26 @@ class manageprocmail extends rcube_plugin
         if ($this->rc->task == 'settings') {
             $this->add_hook('settings_actions', array($this, 'settings_actions'));
         }
+
+        $recipe = new Ingo_Script_Procmail_Recipe(
+            array(
+                'action' => 'Ingo_Rule_System_Vacation',
+                'action-value' => array(
+                    'addresses' => ['a@a.com'],
+                    'subject' => 'aaaa',
+                    'days' => 2,
+                    'reason' => 'sdfgadfasdf %STARTDATE%',
+                    'ignorelist' => [],
+                    'excludes' => ['a@b.com'],
+                    'start' => time(),
+                    'end' => time()
+                ),
+                'disable' => 0
+            ),
+            []
+        );
+
+        Tracy\Debugger::barDump($recipe->generate());
     }
 
 

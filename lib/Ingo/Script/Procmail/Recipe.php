@@ -228,9 +228,12 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                     $params['action-value']['start'],
                     $params['action-value']['end']
                 );
-                if (Horde_Mime::is8bit($reason)) {
-                    $this->_action[] = '       -i"Subject: '
-                        . Horde_Mime::encode(
+
+                $rcube = rcube::get_instance();
+
+                if (rcube_charset::detect($reason, $rcube->config->get('default_charset', RCUBE_CHARSET)) === 'UTF-8') {
+                    $this->_action[] = '       -i"'
+                        . Mail_mimePart::encodeHeader('Subject',
                             $params['action-value']['subject'] . ' (Re: $SUBJECT)'
                         )
                         . '" \\';
@@ -238,10 +241,10 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                         '       -i"Content-Transfer-Encoding: quoted-printable" \\';
                     $this->_action[] =
                         '       -i"Content-Type: text/plain; charset=UTF-8" ; \\';
-                    $reason = Horde_Mime_QuotedPrintable::encode($reason);
+                    $reason = Mail_mimePart::encodeQP($reason);
                 } else {
-                    $this->_action[] = '       -i"Subject: '
-                        . Horde_Mime::encode(
+                    $this->_action[] = '       -i"'
+                        . Mail_mimePart::encodeHeader('Subject',
                             $params['action-value']['subject'] . ' (Re: $SUBJECT)'
                         )
                         . '" ; \\';
