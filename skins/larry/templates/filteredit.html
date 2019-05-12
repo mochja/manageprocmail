@@ -15,7 +15,19 @@
     <roundcube:object name="plugin.filterform" render="errors" />
 
     <fieldset>
-        <legend>ABS</legend>
+        <table class="propform">
+            <tr>
+                <td class="title">
+                    <roundcube:object name="plugin.filterform" label="filter_name"/>
+                </td>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="filter_name"/>
+                </td>
+            </tr>
+        </table>
+    </fieldset>
+
+    <fieldset>
         <table class="propform">
             <tr>
                 <td class="title">
@@ -31,34 +43,38 @@
     <fieldset>
         <legend>Rules</legend>
         <roundcube:object name="plugin.filterform" field="rule" />
+
+        <roundcube:button type="input" label="manageprocmail.addrule" command="manageprocmail.add_rule" />
     </fieldset>
 
     <fieldset>
-        <legend>Actions</legend>
+        <legend>Execute following actions</legend>
         <table class="propform">
             <tr>
-                <td>
-                    <roundcube:object name="plugin.filterform" field="message_action_delete"/>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <roundcube:object name="plugin.filterform" field="message_action_mark_as_read"/>
-                </td>
-            </tr>
-            <tr>
-                <td>
+                <td colspan="2">
                     <roundcube:object name="plugin.filterform" field="message_action_forward_to"/>
                 </td>
             </tr>
             <tr>
+                <td style="width: 20%"></td>
                 <td>
-                    <roundcube:object name="plugin.filterform" field="message_action_move_to"/>
+                    <roundcube:object name="plugin.filterform" field="forward_to"/>
                 </td>
             </tr>
             <tr>
+                <td style="width: 20%">
+                    <roundcube:object name="plugin.filterform" field="message_action_move_to"/>
+                </td>
                 <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_move_to_folder"/>
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 20%">
                     <roundcube:object name="plugin.filterform" field="message_action_copy_to"/>
+                </td>
+                <td>
+                    <roundcube:object name="plugin.filterform" field="message_action_copy_to_folder"/>
                 </td>
             </tr>
         </table>
@@ -73,6 +89,43 @@
     </div>
     <roundcube:object name="plugin.filterform" render="end" />
 </div>
+
+<script>
+    $(function() {
+        var lastId;
+        rcmail.register_command('manageprocmail.add_rule', function() {
+            var ruleRows = $('.frm-rule tbody tr');
+            var ruleRow = ruleRows.first().clone();
+
+            var maxId = ruleRows.find('[name^="rule["]').map(function(i, el) {
+                return parseInt(el.getAttribute('name').match(/rule\[(\d+)]/)[1], 10);
+            }).toArray();
+
+            maxId = maxId.reduce(function (acc, id) { return Math.max(acc, id); }, maxId[0]);
+            lastId = maxId+1;
+
+            ruleRow.find('input,select').each(function(i ,el) {
+                if (el.getAttribute('name').indexOf('rule[') >= 0) {
+                    el.setAttribute('name', el.getAttribute('name').replace(/rule\[\d+]/, 'rule['+ lastId +']'));
+                }
+
+                if (el.hasAttribute('id') && el.getAttribute('id').indexOf('rule-')) {
+                    el.setAttribute('id', el.getAttribute('id').replace(/rule-\d+-/, 'rule-' + lastId + '-'))
+                }
+            });
+            ruleRow.appendTo(ruleRows.parent());
+            $('.rule-remove-btn').attr('disabled', false);
+        }, true);
+
+        $(document).on('click', '.rule-remove-btn', function() {
+            var $this = $(this);
+            if ($this.parent().parent().parent().children().length <= 2) {
+                $('.rule-remove-btn').attr('disabled', true);
+            }
+            $this.parent().parent().remove();
+        });
+    });
+</script>
 
 </body>
 </html>
