@@ -1,5 +1,9 @@
 <?php
 
+require_once __DIR__ . '/vendor/autoload.php';
+
+\Tracy\Debugger::enable(false);
+
 class manageprocmail extends rcube_plugin
 {
 
@@ -17,8 +21,7 @@ class manageprocmail extends rcube_plugin
         $this->rc = rcube::get_instance();
 
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
-
-        $this->register_action('plugin.manageprocmail-action', array($this, 'manageprocmail_actions2'));
+        $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
 
         $this->add_texts('localization/', true);
 
@@ -110,9 +113,9 @@ class manageprocmail extends rcube_plugin
             ->setRequired();
 
         $form->addRadioList('filter_op', 'For incoming email', array_map([$this, 'gettext'], [
-            'all' => 'filterallof',
-            'any' => 'filteranyof',
-            'none' => 'filterany',
+            1 => 'filterallof',
+            2 => 'filteranyof',
+            0 => 'filterany',
         ]));
 
         // rule
@@ -124,26 +127,25 @@ class manageprocmail extends rcube_plugin
 
         $forwardTo = $form->addCheckbox('message_action_forward_to', 'Forward To');
         $moveTo = $form->addCheckbox('message_action_move_to', 'Move To');
-        $moveTo->setDisabled(false);
         $copyTo = $form->addCheckbox('message_action_copy_to', 'Copy To');
-        $copyTo->setDisabled(false);
 
-        $moveToFolders = $form->addSelect('message_action_move_to_folder', 'Folder', $this->rc->get_storage()->list_folders());
-        $moveToFolders
-            ->setDisabled()
-            ->addConditionOn($moveTo, $form::EQUAL, TRUE)
-            ->addRule($form::FILLED);
+        $folders = $this->rc->get_storage()->list_folders();
+        $folders = array_combine($folders, $folders);
 
-        $copyToFolders = $form->addSelect('message_action_copy_to_folder', 'Folder', $this->rc->get_storage()->list_folders());
+        $copyToFolders = $form->addSelect('message_action_copy_to_folder', 'Folder', $folders);
         $copyToFolders
-            ->setDisabled()
             ->addConditionOn($copyTo, $form::EQUAL, TRUE)
-            ->addRule($form::FILLED);
+                ->setRequired();
+
+        $moveToFolders = $form->addSelect('message_action_move_to_folder', 'Folder', $folders);
+        $moveToFolders
+            ->addConditionOn($moveTo, $form::EQUAL, TRUE)
+                ->setRequired();
 
         $forwardToList = $form->addTextArea('forward_to', 'Forward To', 60, 8);
         $forwardToList
             ->addConditionOn($forwardTo, $form::EQUAL, TRUE)
-            ->addRule($form::FILLED);
+                ->setRequired();
 
         $this->rc->output->add_gui_object('move_to_folder_checkbox', $moveTo->getHtmlId());
         $this->rc->output->add_gui_object('copy_to_folder_checkbox', $copyTo->getHtmlId());
@@ -197,17 +199,37 @@ class manageprocmail extends rcube_plugin
             return $this->form->getRenderer()->render($this->form, $attrib['render']);
         }
 
-        return (string)$this->form;
+        return (string) $this->form;
     }
 
 
 
-    function manageprocmail_actions2()
+    function manageprocmail_editform()
     {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+
+        $db = $this->rc->get_dbh();
+        $res = $db->query(sprintf('SELECT %s, %s, %s, %s, %s, %s, %s, %s FROM %s WHERE user_id = ? AND id = ?',
+            'id',
+            $db->quote_identifier('name'),
+            $db->quote_identifier('match'),
+            'forward_to',
+            'copy_to',
+            'move_to',
+            'enabled',
+            'created',
+            $db->table_name($this->ID . '_filters')), $this->rc->get_user_id(), $fid);
+        $filter = $db->fetch_assoc($res);
+
         $this->include_script('manageprocmail.js');
         $this->include_script('netteForms.min.js');
 
         $this->form = $form = $this->create_form([1]);
+        if ($fid) {
+            $form->setAction($this->rc->url(array('action' => $this->rc->action, '_fid' => $fid)));
+        } else {
+            $form->setAction($this->rc->url(array('action' => $this->rc->action)));
+        }
 
         if ($form->isSubmitted()) {
             $values = $form->getHttpData();
@@ -231,17 +253,55 @@ class manageprocmail extends rcube_plugin
             foreach ($toRemove as $ruleContainer) {
                 $form['rule']->removeComponent($ruleContainer);
             }
-        }
 
-        $this->form->setAction($this->rc->url(array('action' => $this->rc->action)));
+            \Tracy\Debugger::barDump($values);
+
+            $form['message_action_move_to']->setDisabled((bool)$values['message_action_copy_to']);
+            $form['message_action_copy_to']->setDisabled((bool)$values['message_action_move_to']);
+
+            $form['message_action_copy_to_folder']
+                ->setDisabled(!(bool)$values['message_action_copy_to']);
+            $form['message_action_move_to_folder']
+                ->setDisabled(!(bool)$values['message_action_move_to']);
+        } else {
+            $form->setDefaults([
+                'filter_name' => $filter['name'],
+                'filter_op' => $filter['match'],
+
+                'message_action_forward_to' => $filter['forward_to'] !== null,
+                'forward_to' => $filter['forward_to'],
+                'message_action_copy_to' => $filter['copy_to'] !== null,
+                'message_action_move_to' => $filter['move_to'] !== null,
+
+                'message_action_move_to_folder' => $filter['move_to'],
+                'message_action_copy_to_folder' => $filter['copy_to'],
+
+                'filter_active' => $filter['enabled'],
+            ]);
+        }
 
         if ($this->form->isSuccess()) {
             $values = $this->form->getValues(true);
 
-            \Tracy\Debugger::barDump($values);
-            $values = $form->getHttpData($form::DATA_TEXT, 'sel[]');
-            \Tracy\Debugger::barDump($values);
+            $res = $db->query(
+                sprintf('UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE user_id = ? AND id = ?',
+                    $db->table_name($this->ID . '_filters', true),
+                    $db->quote_identifier('name'),
+                    $db->quote_identifier('enabled'),
+                    $db->quote_identifier('move_to'),
+                    $db->quote_identifier('copy_to'),
+                    $db->quote_identifier('forward_to')
+                ),
+                $values['filter_name'],
+                (int) $values['filter_active'],
+                $values['message_action_move_to'] ? $values['message_action_move_to_folder'] : null,
+                $values['message_action_copy_to'] ? $values['message_action_copy_to_folder'] : null,
+                $values['message_action_forward_to'] ? $values['forward_to'] : null,
+                $this->rc->get_user_id(), $fid
+            );
 
+            \Tracy\Debugger::barDump($values);
+            \Tracy\Debugger::barDump($res);
         }
 
         $this->register_handler('filterform', array($this, 'formedit'));
@@ -263,12 +323,7 @@ class manageprocmail extends rcube_plugin
             $this->include_script('manageprocmail.js');
         }
 
-        $result = $this->list_rules();
-
-        // $this->rc->output->command('manageprocmail_listupdate', 'list', array('list' => $result));
-        // $this->rc->output->set_pagetitle($this->plugin->gettext('filters'));
         $this->rc->output->send('manageprocmail.manageprocmail');
-
     }
 
 
@@ -284,28 +339,16 @@ class manageprocmail extends rcube_plugin
     {
         $a_show_cols = array('name');
 
-        $result = $this->list_rules();
+        $db = $this->rc->get_dbh();
+
+        $result = $db->query(sprintf('SELECT id, %s, enabled FROM %s WHERE user_id = ?',
+            $db->quote_identifier('name'),
+            $db->table_name('manageprocmail_filters', true)), $this->rc->get_user_id());
 
         $out = $this->rc->table_output($attrib, $result, $a_show_cols, 'id');
         $this->rc->output->add_gui_object('filterslist', $attrib['id']);
         $this->rc->output->include_script('list.js');
 
         return $out;
-    }
-
-
-
-    function list_rules()
-    {
-        return [
-            ['id' => '12', 'name' => 'Rule A', 'class' => '']
-        ];
-    }
-
-
-
-    function manageprocmail_save()
-    {
-
     }
 }

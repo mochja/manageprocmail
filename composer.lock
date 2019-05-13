@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "48da3e45b00a2d3703ee19bf72873e6b",
+    "content-hash": "4496345b716293437204ae919f3b2e94",
     "packages": [
         {
             "name": "nette/component-model",
@@ -288,6 +288,55 @@
                 "validation"
             ],
             "time": "2018-09-18T10:22:16+00:00"
+        },
+        {
+            "name": "roundcube/plugin-installer",
+            "version": "0.1.10",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/roundcube/plugin-installer.git",
+                "reference": "98af3c61566b4387aeae76cfa89076a8c39a0ddc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/roundcube/plugin-installer/zipball/98af3c61566b4387aeae76cfa89076a8c39a0ddc",
+                "reference": "98af3c61566b4387aeae76cfa89076a8c39a0ddc",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "require-dev": {
+                "composer/composer": "*"
+            },
+            "bin": [
+                "src/bin/rcubeinitdb.sh"
+            ],
+            "type": "composer-installer",
+            "extra": {
+                "class": "Roundcube\\Composer\\PluginInstaller"
+            },
+            "autoload": {
+                "psr-0": {
+                    "Roundcube\\Composer": "src/"
+                }
+            },
+            "notification-url": "https://plugins.roundcube.net/downloads/",
+            "license": [
+                "GPL-3.0+"
+            ],
+            "authors": [
+                {
+                    "name": "Till Klampaeckel",
+                    "email": "till@php.net"
+                },
+                {
+                    "name": "Thomas Bruederli",
+                    "email": "thomas@roundcube.net"
+                }
+            ],
+            "description": "A composer-installer for Roundcube plugins.",
+            "time": "2019-04-13T07:06:54+00:00"
         }
     ],
     "packages-dev": [

@@ -59,6 +59,10 @@ if (window.rcmail) {
                 }
             })();
 
+            rcmail.register_command('plugin.manageprocmail-add', function() {
+                rcmail.filters_list.clear_selection();
+                rcmail.load_manageprocmailframe();
+            }, true);
         }
     })
 }
@@ -73,20 +77,17 @@ rcube_webmail.prototype.manageprocmail_select = function (list) {
     }
 
     var has_id = typeof (id) != 'undefined' && id != null;
-    this.enable_command('plugin.manageprocmail-act', 'plugin.manageprocmail-del', has_id);
+    this.enable_command('plugin.manageprocmail-del', has_id);
 };
 
 // load filter frame
-rcube_webmail.prototype.load_manageprocmailframe = function (add_url, reset) {
-    // if (reset)
-    // this.reset_filters_list();
-
+rcube_webmail.prototype.load_manageprocmailframe = function (add_url) {
     if (this.env.contentframe && window.frames && window.frames[this.env.contentframe]) {
         var lock = this.set_busy(true, 'loading');
 
         target = window.frames[this.env.contentframe];
         target.location.href = this.env.comm_path
-            + '&_action=plugin.manageprocmail-action&_framed=1&_unlock=' + lock
+            + '&_action=plugin.manageprocmail-editform&_framed=1&_unlock=' + lock
             + (add_url ? ('&' + add_url) : '');
     }
 };

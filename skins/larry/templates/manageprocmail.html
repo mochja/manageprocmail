@@ -43,8 +43,7 @@
 <div class="scroller withfooter">
   <roundcube:object name="filterslist" id="filterslist" class="listing" summary="manageprocmail.ariasummaryfilterslist" noheader="true" role="listbox" />
 </div>
-<div class="boxfooter">
-  <roundcube:button command="plugin.manageprocmail-add" type="link" title="manageprocmail.filteradd" class="listbutton add disabled" classAct="listbutton add" innerClass="inner" content="+" /><roundcube:button name="filtermenulink" id="filtermenulink" type="link" title="moreactions" class="listbutton groupactions" onclick="return UI.toggle_popup('filtermenu', event)" innerClass="inner" content="&#9881;" aria-haspopup="true" aria-expanded="false" aria-owns="filtermenu-menu" />
+<div class="boxfooter"><roundcube:button command="plugin.manageprocmail-add" type="link" title="manageprocmail.filteradd" class="listbutton add disabled" classAct="listbutton add" innerClass="inner" content="+" /><roundcube:button name="filtermenulink" id="filtermenulink" type="link" title="moreactions" class="listbutton groupactions" onclick="return UI.toggle_popup('filtermenu', event)" innerClass="inner" content="&#9881;" aria-haspopup="true" aria-expanded="false" aria-owns="filtermenu-menu" />
 </div>
 </div>
 
@@ -74,18 +73,12 @@
 <div id="filtermenu" class="popupmenu" aria-hidden="true">
   <h3 id="aria-label-filteractions" class="voice"><roundcube:label name="manageprocmail.arialabelfilteractions" /></h3>
   <ul class="toolbarmenu" id="filtermenu-menu" role="menu" aria-labelledby="aria-label-filteractions">
-    <li role="menuitem"><roundcube:button command="plugin.manageprocmail-act" label="manageprocmail.enable" classAct="active" /></li>
     <li role="menuitem"><roundcube:button command="plugin.manageprocmail-del" label="delete" classAct="active" /></li>
     <roundcube:container name="filteroptions" id="filtermenu" />
   </ul>
 </div>
 
 <roundcube:include file="/includes/footer.html" />
-
-<script type="text/javascript">
-  new rcube_splitter({ id:'manageprocmailsplitter2', p1:'#filterslistbox', p2:'#filter-box',
-          orientation:'v', relative:true, start:186, min:120, size:12 }).init();
-</script>
 
 </body>
 </html>
