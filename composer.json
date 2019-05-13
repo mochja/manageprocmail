@@ -1,19 +1,38 @@
 {
-    "name": "mochja/manageprocmail",
-    "authors": [
-        {
-            "name": "Ján Mochňak",
-            "email": "janmochnak@icloud.com"
-        }
-    ],
-  "require": {
-    "nette/forms": "^2.4"
-  },
-    "require-dev": {
-      "tracy/tracy": "^2.5",
-      "phpunit/phpunit": "^4.8.36 || ^5.7.21"
-    },
-   "autoload": {
-        "classmap": ["lib/"]
+  "name": "mochja/manageprocmail",
+  "type": "roundcube-plugin",
+  "keywords": [
+    "procmail",
+    "filter"
+  ],
+  "authors": [
+    {
+      "name": "Ján Mochňak",
+      "email": "janmochnak@icloud.com"
     }
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://plugins.roundcube.net"
+    }
+  ],
+  "require": {
+    "nette/forms": "^2.4",
+    "roundcube/plugin-installer": ">=0.1.6"
+  },
+  "require-dev": {
+    "tracy/tracy": "^2.5",
+    "phpunit/phpunit": "^4.8.36 || ^5.7.21"
+  },
+  "autoload": {
+    "classmap": [
+      "lib/"
+    ]
+  },
+  "extra": {
+    "roundcube": {
+      "sql-dir": "SQL"
+    }
+  }
 }
