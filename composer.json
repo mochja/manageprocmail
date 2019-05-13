@@ -1,6 +1,7 @@
 {
   "name": "mochja/manageprocmail",
   "type": "roundcube-plugin",
+  "license": "MIT",
   "keywords": [
     "procmail",
     "filter"
