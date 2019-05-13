@@ -124,6 +124,11 @@
             }
             $this.parent().parent().remove();
         });
+
+        var ruleRows = $('.frm-rule tbody tr');
+        if (ruleRows.length === 1) {
+            $('.rule-remove-btn').attr('disabled', true);
+        }
     });
 </script>
 

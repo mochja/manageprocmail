@@ -12,14 +12,14 @@ CREATE TABLE `manageprocmail_filters` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `manageprocmail_filters_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- Create syntax for TABLE 'manageprocmail_rules'
 CREATE TABLE `manageprocmail_rules` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `filter_id` int(11) unsigned NOT NULL,
   `type` varchar(255) CHARACTER SET utf8 NOT NULL,
-  `op` int(11) NOT NULL,
+  `op` varchar(255) CHARACTER SET utf8 NOT NULL DEFAULT '',
   `against` text CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`),
   KEY `filter_id` (`filter_id`),

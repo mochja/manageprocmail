@@ -116,7 +116,7 @@ class manageprocmail extends rcube_plugin
             1 => 'filterallof',
             2 => 'filteranyof',
             0 => 'filterany',
-        ]));
+        ]))->setDefaultValue(1);
 
         // rule
         $rulesContainer = $form->addContainer('rule');
@@ -154,7 +154,8 @@ class manageprocmail extends rcube_plugin
         $this->rc->output->add_gui_object('forward_to_checkbox', $forwardTo->getHtmlId());
         $this->rc->output->add_gui_object('forward_to_list', $forwardToList->getHtmlId());
 
-        $form->addCheckbox('filter_active', $this->gettext('manageprocmail.active'));
+        $form->addCheckbox('filter_active', $this->gettext('manageprocmail.active'))
+            ->setDefaultValue(true);
 
         $form->addSubmit('submit', 'Save')
             ->getControlPrototype()
@@ -221,6 +222,14 @@ class manageprocmail extends rcube_plugin
             $db->table_name($this->ID . '_filters')), $this->rc->get_user_id(), $fid);
         $filter = $db->fetch_assoc($res);
 
+        if ($fid && !$filter) {
+            rcube::raise_error([
+                'code' => 403,
+                'message' => 'permission denied'
+            ], false, true);
+            return;
+        }
+
         $this->include_script('manageprocmail.js');
         $this->include_script('netteForms.min.js');
 
@@ -263,7 +272,7 @@ class manageprocmail extends rcube_plugin
                 ->setDisabled(!(bool)$values['message_action_copy_to']);
             $form['message_action_move_to_folder']
                 ->setDisabled(!(bool)$values['message_action_move_to']);
-        } else {
+        } elseif ($filter) {
             $form->setDefaults([
                 'filter_name' => $filter['name'],
                 'filter_op' => $filter['match'],
@@ -283,8 +292,14 @@ class manageprocmail extends rcube_plugin
         if ($this->form->isSuccess()) {
             $values = $this->form->getValues(true);
 
+            $sql = 'UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE user_id = ? AND id = ?';
+
+            if (!$fid) {
+                $sql = 'INSERT INTO %s (%s, %s, %s, %s, %s, user_id) VALUES (?,?,?,?,?,?)';
+            }
+
             $res = $db->query(
-                sprintf('UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE user_id = ? AND id = ?',
+                sprintf($sql,
                     $db->table_name($this->ID . '_filters', true),
                     $db->quote_identifier('name'),
                     $db->quote_identifier('enabled'),
@@ -300,8 +315,30 @@ class manageprocmail extends rcube_plugin
                 $this->rc->get_user_id(), $fid
             );
 
+            if (!$fid) {
+                $fid = $db->insert_id($this->ID . '_filters');
+            }
+
+            $res = $db->query('DELETE FROM ' . $this->ID . '_rules WHERE filter_id = ?', $fid);
+
+            foreach ($values['rules'] as $rule) {
+                $res = $db->query('INSERT INTO ' . $this->ID . '_rules (filter_id, `type`, op, against) VALUES (?,?,?,?)',
+                    $fid, $rule['rule_header'], $rule['rule_op'], $rule['rule_op_against']);
+
+                if (!$res) {
+                    $form->addError('Could not insert rule into database');
+                    break;
+                }
+            }
+
             \Tracy\Debugger::barDump($values);
             \Tracy\Debugger::barDump($res);
+
+            $this->rc->output->redirect([
+                'action' => $this->rc->action,
+                '_fid' => $fid,
+            ]);
+            return;
         }
 
         $this->register_handler('filterform', array($this, 'formedit'));
