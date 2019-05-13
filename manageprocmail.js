@@ -1,41 +1,66 @@
 if (window.rcmail) {
     rcmail.addEventListener('init', function (evt) {
-
-        rcmail.register_command('plugin.manageprocmail-save', function() {}, true);
-
         if (rcmail.env.action.startsWith('plugin.manageprocmail')) {
-
             if (rcmail.gui_objects.filterslist) {
-                // alert('ok');
 
                 rcmail.filters_list = new rcube_list_widget(rcmail.gui_objects.filterslist,
-                    {multiselect: false, draggable: true, keyboard: true});
+                    {multiselect: false, draggable: false, keyboard: true});
 
                 rcmail.filters_list
                     .addEventListener('select', function (e) {
                         rcmail.manageprocmail_select(e);
                     })
-                    //.addEventListener('dragstart', function(e) { rcmail.manageprocmail_dragstart(e); })
-                    //.addEventListener('dragend', function(e) { rcmail.manageprocmail_dragend(e); })
-                    .addEventListener('initrow', function (row) {
-                        row.obj.onmouseover = function () {
-                            rcmail.manageprocmail_focus_filter(row);
-                        };
-                        row.obj.onmouseout = function () {
-                            rcmail.manageprocmail_unfocus_filter(row);
-                        };
-                    })
                     .init();
             }
+
+            (function () {
+                if (rcmail.gui_objects.forward_to_checkbox) {
+                    var $list = $(rcmail.gui_objects.forward_to_list).parent().parent();
+
+                    rcmail.gui_objects.forward_to_checkbox.onclick = function () {
+                        $list.toggle();
+                    };
+
+                    if (!rcmail.gui_objects.forward_to_checkbox.checked) {
+                        $list.hide();
+                    } else {
+                        $list.show();
+                    }
+                }
+            })();
+
+            var $moveTo = $(rcmail.gui_objects.move_to_folder_checkbox);
+            var $copyTo = $(rcmail.gui_objects.copy_to_folder_checkbox);
+            (function () {
+                if (rcmail.gui_objects.move_to_folder_checkbox) {
+                    var $list = $(rcmail.gui_objects.move_to_folder_list);
+
+                    rcmail.gui_objects.move_to_folder_checkbox.onclick = function () {
+                        $list.attr('disabled', !rcmail.gui_objects.move_to_folder_checkbox.checked);
+                        $copyTo.attr('disabled', rcmail.gui_objects.move_to_folder_checkbox.checked);
+                    };
+
+                    $list.attr('disabled', !rcmail.gui_objects.move_to_folder_checkbox.checked);
+                    $copyTo.attr('disabled', rcmail.gui_objects.move_to_folder_checkbox.checked);
+                }
+            })();
+
+            (function () {
+                if (rcmail.gui_objects.copy_to_folder_checkbox) {
+                    var $list = $(rcmail.gui_objects.copy_to_folder_list);
+
+                    rcmail.gui_objects.copy_to_folder_checkbox.onclick = function () {
+                        $list.attr('disabled', !rcmail.gui_objects.copy_to_folder_checkbox.checked);
+                        $moveTo.attr('disabled', rcmail.gui_objects.copy_to_folder_checkbox.checked);
+                    };
+
+                    $list.attr('disabled', !rcmail.gui_objects.copy_to_folder_checkbox.checked);
+                    $moveTo.attr('disabled', rcmail.gui_objects.copy_to_folder_checkbox.checked);
+                }
+            })();
+
         }
     })
-
-    rcmail.register_button('plugin.manageprocmail-save', 'rcmbtn100', 'input');
-
-    rcmail.register_command('plugin.manageprocmail-save', function (response) {
-        alert('ok')
-        console.log(response)
-    }, true);
 }
 
 // Filter selection
