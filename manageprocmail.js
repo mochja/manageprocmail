@@ -63,6 +63,19 @@ if (window.rcmail) {
                 rcmail.filters_list.clear_selection();
                 rcmail.load_manageprocmailframe();
             }, true);
+
+            rcmail.register_command('plugin.manageprocmail-del', function() {
+                var id = rcmail.filters_list.get_single_selection();
+
+                if (id != null) {
+                    id = rcmail.filters_list.rows[id].uid;
+                    if (confirm('a')) {
+                        // TODO: AJAX
+                        rcmail.display_message('removed', 'confirmation', 3000);
+                        rcmail.filters_list.clear_selection();
+                    }
+                }
+            }, false);
         }
     })
 }

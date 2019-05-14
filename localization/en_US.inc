@@ -53,3 +53,7 @@ $labels['messagediscard'] = 'Discard with message';
 $labels['messagekeep'] = 'Keep message in Inbox';
 $labels['filterdef'] = 'Filter definition';
 $labels['listid'] = 'List ID';
+
+$messages = [];
+$messages['removed'] = 'removed';
+
