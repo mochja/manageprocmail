@@ -73,6 +73,8 @@ if (window.rcmail) {
                         // TODO: AJAX
                         rcmail.display_message('removed', 'confirmation', 3000);
                         rcmail.filters_list.clear_selection();
+                        rcmail.filters_list.remove_row(id);
+                        rcmail.filters_list.select_first();
                     }
                 }
             }, false);
