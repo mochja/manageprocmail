@@ -4,6 +4,36 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 \Tracy\Debugger::enable(false);
 
+function cToIngo($field)
+{
+    $map = [
+        'header::Subject' => 'Subject',
+        'header::From' => 'From',
+        'header::To' => 'Destination',
+        'header::Cc' => 'Cc',
+        'header::ListId' => 'List-ID',
+        'body::body' => 'Body',
+    ];
+
+    return $map[$field];
+}
+
+function typeToIngo($type)
+{
+    $map = [
+        'contains' => 'contains',
+        'notcontains' => 'not contain',
+        'is' => 'regex',
+        'notis' => 'not regex',
+        'exists' => 'contains',
+        'notexists' => 'not contain',
+        'regex' => 'regex',
+        'notregex' => 'not regex',
+    ];
+
+    return $map[$type];
+}
+
 class manageprocmail extends rcube_plugin
 {
 
@@ -15,6 +45,9 @@ class manageprocmail extends rcube_plugin
     private $form;
 
 
+    private $transport;
+
+
 
     function init()
     {
@@ -22,6 +55,7 @@ class manageprocmail extends rcube_plugin
 
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
         $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
+        $this->register_action('plugin.manageprocmail-del', array($this, 'manageprocmail_delete'));
 
         $this->add_texts('localization/', true);
 
@@ -29,25 +63,12 @@ class manageprocmail extends rcube_plugin
             $this->add_hook('settings_actions', array($this, 'settings_actions'));
         }
 
-        $recipe = new Ingo_Script_Procmail_Recipe(
-            array(
-                'action' => 'Ingo_Rule_System_Vacation',
-                'action-value' => array(
-                    'addresses' => ['a@a.com'],
-                    'subject' => 'aaaa',
-                    'days' => 2,
-                    'reason' => 'sdfgadfasdf %STARTDATE%',
-                    'ignorelist' => 1,
-                    'excludes' => ['a@b.com'],
-                    'start' => time(),
-                    'end' => time()
-                ),
-                'disable' => 0
-            ),
-            []
-        );
+        $this->transport = new Ingo_Transport_Flysystem([
+            'port' => 2121,
 
-        Tracy\Debugger::barDump($recipe->generate());
+            'username' => 'admin',
+            'password' => '123456',
+        ]);
     }
 
 
@@ -62,7 +83,14 @@ class manageprocmail extends rcube_plugin
                     'label' => 'filters',
                     'domain' => 'manageprocmail',
                     'title' => 'filterstitle',
-                ]
+                ],
+//                [
+//                    'action' => 'plugin.manageprocmail',
+//                    'class' => 'vacation',
+//                    'label' => 'vacation',
+//                    'domain' => 'manageprocmail',
+//                    'title' => 'vacationtitle',
+//                ]
             ])
         ]);
     }
@@ -85,8 +113,8 @@ class manageprocmail extends rcube_plugin
         $ruleContainer->addSelect('rule_op', 'Operation', [
             'contains' => $this->gettext('filtercontains'),
             'notcontains' => $this->gettext('filternotcontains'),
-            'is' => $this->gettext('filteris'),
-            'notis' => $this->gettext('filterisnot'),
+//            'is' => $this->gettext('filteris'),
+//            'notis' => $this->gettext('filterisnot'),
             'exists' => $this->gettext('filterexists'),
             'notexists' => $this->gettext('filternotexists'),
             'regex' => $this->gettext('filterregex'),
@@ -150,7 +178,22 @@ class manageprocmail extends rcube_plugin
         $forwardToList = $form->addTextArea('forward_to', 'Forward To', 60, 8);
         $forwardToList
             ->addConditionOn($forwardTo, $form::EQUAL, TRUE)
-                ->setRequired();
+                ->setRequired()
+                ->addRule(function($control) {
+                    $emails = explode(PHP_EOL, $control->value);
+
+                    if (count($emails) === 0 && !empty($control->value)) {
+                        return false;
+                    }
+
+                    foreach ($emails as $email) {
+                        if (!\Nette\Utils\Validators::isEmail($email))
+                            return false;
+                    }
+
+                    return true;
+                }, 'Some of the email is not valid.')
+            ->endCondition();
 
         $this->rc->output->add_gui_object('move_to_folder_checkbox', $moveTo->getHtmlId());
         $this->rc->output->add_gui_object('copy_to_folder_checkbox', $copyTo->getHtmlId());
@@ -206,6 +249,140 @@ class manageprocmail extends rcube_plugin
         }
 
         return (string) $this->form;
+    }
+
+
+    function generate_script()
+    {
+        $script = [];
+
+        $filters = [];
+
+        $db = $this->rc->get_dbh();
+        $res = $db->query(sprintf('SELECT %s, %s, %s, %s, %s, %s, %s, %s FROM %s WHERE user_id = ?',
+            'id',
+            $db->quote_identifier('name'),
+            $db->quote_identifier('match'),
+            'forward_to',
+            'copy_to',
+            'move_to',
+            'enabled',
+            'created',
+            $db->table_name($this->ID . '_filters')), $this->rc->get_user_id());
+        while (($filter = $db->fetch_assoc($res))){
+            $filters[] = $filter;
+        }
+
+        foreach ($filters as $filter) {
+            $ruleScript = [];
+
+            $rules = [];
+            $res = $db->query(sprintf('SELECT %s, %s, %s FROM %s WHERE filter_id = ?',
+                $db->quote_identifier('type'),
+                $db->quote_identifier('op'),
+                'against',
+                $db->table_name($this->ID . '_rules')), $filter['id']);
+            while (($rule = $db->fetch_assoc($res))) {
+                $rules[] = $rule;
+            }
+
+            if ($filter['forward_to']) {
+                $ruleScript[] = $recipe = new Ingo_Script_Procmail_Recipe(
+                    array(
+                        'action' => 'Ingo_Rule_System_Forward',
+                        'action-value' => explode(PHP_EOL, $filter['forward_to']),
+                        'disable' => !$filter['enabled']
+                    ),
+                    []
+                );
+
+                if ($filter['copy_to']) {
+                    $recipe->addFlag('c');
+                }
+            }
+
+            if ($filter['move_to'] || $filter['copy_to']) {
+                $ruleScript[] = new Ingo_Script_Procmail_Recipe(
+                    array(
+                        'action' => 'Ingo_Rule_User_Move',
+                        'action-value' => $filter['move_to'] || $filter['copy_to'],
+                        'disable' => !$filter['enabled']
+                    ),
+                    []
+                );
+            }
+
+            $initialScript = $ruleScript;
+
+            switch ($filter['match']) {
+                case '1':
+                    foreach ($rules as $condition) {
+                        foreach ($initialScript as $recipe) {
+                            $recipe->addCondition([
+                                'case' => 0,
+                                'field' => cToIngo($condition['type']),
+                                'match' => typeToIngo($condition['op']),
+                                'value' => $condition['against'],
+                            ]);
+                        }
+                    }
+                    break;
+                case '2':
+                    foreach ($initialScript as $recipe) {
+                        $loop = 0;
+                        foreach ($rules as $condition) {
+                            $clone = clone $recipe;
+                            if ($loop++) {
+                                $clone->addFlag('E');
+                                $ruleScript[] = $clone;
+                                $clone->addCondition([
+                                    'case' => 0,
+                                    'field' => cToIngo($condition['type']),
+                                    'match' => typeToIngo($condition['op']),
+                                    'value' => $condition['against'],
+                                ]);
+                            } else {
+                                $recipe->addCondition([
+                                    'case' => 0,
+                                    'field' => cToIngo($condition['type']),
+                                    'match' => typeToIngo($condition['op']),
+                                    'value' => $condition['against'],
+                                ]);
+                            }
+                        }
+                    }
+            }
+
+            $script = array_merge($script, $ruleScript);
+        }
+
+        $res = $db->query('SELECT `id`, `from`, `to`, 
+            `exceptions`, `subject`, `reason`, `ingorelist`, `days`, `enabled`
+            FROM ' . $this->ID . '_vacations WHERE user_id = ? LIMIT 1', $this->rc->get_user_id());
+        $vacation = $db->fetch_assoc($res);
+
+        if ($vacation) {
+            $recipe = new Ingo_Script_Procmail_Recipe(
+                array(
+                    'action' => 'Ingo_Rule_System_Vacation',
+                    'action-value' => array(
+                        'addresses' => array_column($this->rc->user->list_emails(), 'email'),
+                        'subject' => $vacation['subject'],
+                        'days' => $vacation['days'],
+                        'reason' => $vacation['reason'],
+                        'ignorelist' => $vacation['ignorelist'],
+                        'excludes' => explode(PHP_EOL, $vacation['excludes']),
+                        'start' => strtotime($vacation['from']),
+                        'end' => strtotime($vacation['to'] . ' 23:59:59'),
+                    ),
+                    'disable' => !$vacation['enabled']
+                ),
+                []
+            );
+            $script[] = $recipe;
+        }
+
+        return implode(PHP_EOL, array_map(function($recipe) { return $recipe->generate(); }, $script));
     }
 
 
@@ -372,6 +549,17 @@ class manageprocmail extends rcube_plugin
             \Tracy\Debugger::barDump($values);
             \Tracy\Debugger::barDump($res);
 
+            try {
+                $currentScript = $this->transport->getScript();
+                $currentScript['script'] = $this->generate_script();
+
+                $this->transport->setScriptActive($currentScript);
+            } catch (Exception $e) {
+                rcmail::write_log('errors', $e->getMessage());
+                $form->addError('Could not update script');
+                $res = false;
+            }
+
             if ($res) {
                 $this->rc->output->redirect([
                     'action' => $this->rc->action,
@@ -427,5 +615,36 @@ class manageprocmail extends rcube_plugin
         $this->rc->output->include_script('list.js');
 
         return $out;
+    }
+
+
+    function manageprocmail_delete()
+    {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+
+        if ($fid) {
+            $db = $this->rc->get_dbh();
+
+            $db->startTransaction();
+
+            $res = $db->query('DELETE FROM '. $this->ID . '_filters WHERE user_id = ? AND id = ?',
+                $this->rc->get_user_id(), $fid);
+
+            try {
+                $currentScript = $this->transport->getScript();
+                $currentScript['script'] = $this->generate_script();
+
+                $this->transport->setScriptActive($currentScript);
+                $db->endTransaction();
+            } catch (Exception $e) {
+                rcmail::write_log('errors', $e->getMessage());
+                $res = false;
+                $db->rollbackTransaction();
+            }
+
+            if (!$res) {
+                $this->rc->output->raise_error(404, 'Filter not found!');
+            }
+        }
     }
 }

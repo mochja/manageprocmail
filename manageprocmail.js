@@ -69,9 +69,10 @@ if (window.rcmail) {
 
                 if (id != null) {
                     id = rcmail.filters_list.rows[id].uid;
-                    if (confirm('a')) {
-                        // TODO: AJAX
-                        rcmail.display_message('removed', 'confirmation', 3000);
+                    if (confirm('Are you sure?')) {
+                        var lock = rcmail.set_busy(true, 'loading');
+
+                        rcmail.http_get('plugin.manageprocmail-del', {_fid: id}, lock);
                         rcmail.filters_list.clear_selection();
                         rcmail.filters_list.remove_row(id);
                         rcmail.filters_list.select_first();

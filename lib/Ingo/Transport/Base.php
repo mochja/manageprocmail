@@ -71,8 +71,7 @@ abstract class Ingo_Transport_Base
      */
     public function supportShares()
     {
-        return ($this->_supportShares &&
-                $GLOBALS['session']->get('ingo', 'backend/shares'));
+        return false;
     }
 
     /**

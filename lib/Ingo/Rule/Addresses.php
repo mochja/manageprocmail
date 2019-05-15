@@ -81,18 +81,12 @@ implements Countable
      */
     public function addAddresses($to_add)
     {
-        global $injector;
-
         $addr = clone $this->_addr;
 
         $addr->add($to_add);
         $addr->unique();
 
-        $max = is_null($this->_perm)
-            ? false
-            : $injector->getInstance('Horde_Core_Perms')->hasAppPermission(
-                Ingo_Perms::getPerm($this->_perm)
-            );
+        $max = 50;
 
         if (($max !== true) && !empty($max)) {
             $addr_count = count($addr);
@@ -105,7 +99,7 @@ implements Countable
     }
 
     /**
-     * @return Ingo_Excception
+     * @return Ingo_Exception
      */
     protected function _setAddressesException($addr_count, $max)
     {

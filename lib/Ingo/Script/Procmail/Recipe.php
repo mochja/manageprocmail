@@ -86,64 +86,9 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
             $this->_params['ls'] = $this->_params['transport'][Ingo::RULE_ALL]['params']['ls'];
         }
         switch ($params['action']) {
-        case 'Ingo_Rule_User_Keep':
-            // Note: you may have to set the DEFAULT variable in your
-            // backend configuration.
-            $this->_action[] = $delivery .= '$DEFAULT';
-            break;
-
         case 'Ingo_Rule_User_Move':
             $this->_action[] = $delivery
                 .= $this->procmailPath($params['action-value']);
-            break;
-
-        case 'Ingo_Rule_User_Discard':
-            $this->_action[] = '/dev/null';
-            break;
-
-        case 'Ingo_Rule_User_Redirect':
-            $this->_action[] = '! ' . $params['action-value'];
-            break;
-
-        case 'Ingo_Rule_User_RedirectKeep':
-            $this->_action[] = '{';
-            $this->_action[] = '  :0 c';
-            $this->_action[] = '  ! ' . $params['action-value'];
-            if (strpos($this->_flags, 'c') === false) {
-                $this->_action[] = '';
-                $this->_action[] = '  :0'
-                    . (isset($this->_params['delivery_agent']) ? ' w' : '');
-                $this->_action[] = '  ' . $delivery . '$DEFAULT';
-            }
-            $this->_action[] = '}';
-            break;
-
-        case 'Ingo_Rule_User_Reject':
-            $this->_action[] = '{';
-            $this->_action[] = '  :0 h';
-            $this->_action[] = '  SUBJECT=| formail -xSubject:';
-            $this->_action[] = '';
-            $this->_action[] = '  :0 h';
-            $this->_action[] = '  SENDER=| formail -zxFrom:';
-            $this->_action[] = '';
-            $this->_action[] = '  :0 Wh';
-            $this->_action[] = '  * !^FROM_DAEMON';
-            $this->_action[] = '  * !^X-Loop: $SENDER';
-            $this->_action[] = '  | (formail -rA"X-Loop: $SENDER" \\';
-            $reason = $params['action-value'];
-            if (Horde_Mime::is8bit($reason)) {
-                $this->_action[] = '    -i"Subject: Re: $SUBJECT" \\';
-                $this->_action[] = '    -i"Content-Transfer-Encoding: quoted-printable" \\';
-                $this->_action[] = '    -i"Content-Type: text/plain; charset=UTF-8" ; \\';
-                $reason = Horde_Mime_QuotedPrintable::encode($reason);
-            } else {
-                $this->_action[] = '    -i"Subject: Re: $SUBJECT" ; \\';
-            }
-            $reason = addcslashes($reason, "\\\n\r\t\"`");
-            $this->_action[] = '    ' . $this->_params['echo']
-                . ' -e "' . $reason . '" \\';
-            $this->_action[] = '  ) | $SENDMAIL -oi -t';
-            $this->_action[] = '}';
             break;
 
         case 'Ingo_Rule_System_Vacation':
@@ -373,7 +318,10 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
 
         $reverseCondition = false;
         switch ($match) {
-        case 'regex':
+            case 'not regex':
+                $reverseCondition = true;
+                // fall through
+            case 'regex':
             $string .= $prefix . $condition['value'];
             break;
 
@@ -483,12 +431,12 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                 if (substr($folder, 0, 6) == 'INBOX.') {
                     $folder = substr($folder, 6);
                 }
-                $mbox = new Horde_Imap_Client_Mailbox($folder);
-                return '".' . $mbox->utf7imap . '/"';
+                $mbox = rcube_charset::convert($folder, RCUBE_CHARSET, 'UTF7-IMAP');
+                return '".' . $mbox . '/"';
             }
             if ($this->_params['path_style'] == 'mboxutf7') {
-                $mbox = new Horde_Imap_Client_Mailbox($folder);
-                return '"' . $mbox->utf7imap . '/"';
+                $mbox = rcube_charset::convert($folder, RCUBE_CHARSET, 'UTF7-IMAP');
+                return '"' . $mbox . '"';
             }
         }
         return str_replace(' ', '\ ', escapeshellcmd($folder));
