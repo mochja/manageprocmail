@@ -648,6 +648,8 @@ class manageprocmail extends rcube_plugin
 
         if ($form->isSuccess()) {
             $values = $form->getValues(true);
+            $db->startTransaction();
+
             $res = $db->query(<<<SQL
 INSERT INTO {$this->ID}_vacations (`from`, `to`, subject, reason, enabled, user_id)
   VALUES (?, ?, ?, ?, ?, ?)
@@ -664,7 +666,19 @@ SQL
                 $values['enabled'] ?: 0
             );
 
+            try {
+                $currentScript = $this->transport->getScript();
+                $currentScript['script'] = $this->generate_script();
+
+                $this->transport->setScriptActive($currentScript);
+                $db->endTransaction();
+            } catch (Exception $e) {
+                rcmail::write_log('errors', $e->getMessage());
+                $res = false;
+            }
+
             if (!$res) {
+                $db->rollbackTransaction();
                 $form->addError('cannot insert vacation');
                 $this->rc->output->show_message('cannot store vacation', 'error');
             } else {
