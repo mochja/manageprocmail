@@ -6,27 +6,68 @@
 </head>
 <body class="noscroll">
 
+<style>
+  #manageprocmail-vacation {
+    margin-left: 210px;
+  }
+</style>
+
 <roundcube:include file="/includes/header.html" />
 
 <div id="mainscreen" class="offset">
 
-<h1 class="voice"><roundcube:label name="settings" /> : <roundcube:label name="managesieve.vacation" /></h1>
+<h1 class="voice"><roundcube:label name="settings" /> : <roundcube:label name="manageprocmail.vacation" /></h1>
 
 <roundcube:include file="/includes/settingstabs.html" />
 
-<div id="managesieve-vacation" class="uibox contentbox" role="main" aria-labelledby="aria-label-vacationform">
+<div id="manageprocmail-vacation" class="uibox contentbox" role="main" aria-labelledby="aria-label-vacationform">
   <div>
-    <h2 class="boxtitle" id="aria-label-vacationform"><roundcube:label name="managesieve.vacation" /></h2>
-    <roundcube:object name="vacationform" id="vacationform" class="propform boxcontent tabbed" />
-  </div>
-  <div class="footerleft formbuttons">
-    <roundcube:button command="plugin.managesieve-save" type="input" class="button mainaction" label="save" />
+    <h2 class="boxtitle" id="aria-label-vacationform"><roundcube:label name="manageprocmail.vacation" /></h2>
+    <roundcube:object name="plugin.vacationform" id="vacationform" class="propform boxcontent tabbed" />
   </div>
 </div>
 
 </div>
 
 <roundcube:include file="/includes/footer.html" />
+
+<script>
+  $(function() {
+    if ($.datepicker) {
+        var dateFormat = "yy-mm-dd",
+            from = $("#frm-from")
+                .datepicker({
+                    dateFormat: dateFormat,
+                    defaultDate: "+1w",
+                    changeMonth: true,
+                    numberOfMonths: 1
+                })
+                .on("change", function () {
+                    to.datepicker("option", "minDate", getDate(this));
+                }),
+            to = $("#frm-to").datepicker({
+                dateFormat: dateFormat,
+                defaultDate: "+1w",
+                changeMonth: true,
+                numberOfMonths: 1
+            })
+                .on("change", function () {
+                    from.datepicker("option", "maxDate", getDate(this));
+                });
+
+        function getDate(element) {
+            var date;
+            try {
+                date = $.datepicker.parseDate(dateFormat, element.value);
+            } catch (error) {
+                date = null;
+            }
+
+            return date;
+        }
+    }
+  })
+</script>
 
 </body>
 </html>

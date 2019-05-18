@@ -56,6 +56,7 @@ class manageprocmail extends rcube_plugin
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
         $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
         $this->register_action('plugin.manageprocmail-del', array($this, 'manageprocmail_delete'));
+        $this->register_action('plugin.manageprocmail-vacation', array($this, 'manageprocmail_vacation'));
 
         $this->add_texts('localization/', true);
 
@@ -84,13 +85,13 @@ class manageprocmail extends rcube_plugin
                     'domain' => 'manageprocmail',
                     'title' => 'filterstitle',
                 ],
-//                [
-//                    'action' => 'plugin.manageprocmail',
-//                    'class' => 'vacation',
-//                    'label' => 'vacation',
-//                    'domain' => 'manageprocmail',
-//                    'title' => 'vacationtitle',
-//                ]
+                [
+                    'action' => 'plugin.manageprocmail-vacation',
+                    'class' => 'vacation',
+                    'label' => 'vacation',
+                    'domain' => 'manageprocmail',
+                    'title' => 'vacationtitle',
+                ]
             ])
         ]);
     }
@@ -615,6 +616,70 @@ class manageprocmail extends rcube_plugin
         $this->rc->output->include_script('list.js');
 
         return $out;
+    }
+
+    function vacationform($attrib)
+    {
+        $db = $this->rc->get_dbh();
+        $form = new \Nette\Forms\Form();
+        $form->setAction($this->rc->url([
+            'action' => $this->rc->action,
+        ]));
+        $form->getElementPrototype()
+            ->addAttributes($attrib);
+
+        $form->addText('from', 'From')
+            ->getControlPrototype()
+            ->setAttribute('class', 'datepicker');
+        $form->addText('to', 'To')
+            ->getControlPrototype()
+            ->setAttribute('class', 'datepicker');
+
+        $form->addText('subject', 'Subject');
+        $form->addCheckbox('enabled', 'Enabled');
+        $form->addTextArea('reason', 'Reason');
+
+        $form->addSubmit('save', 'Save');
+
+        if (!$form->isSubmitted()) {
+            $res = $db->query('SELECT `from`, `to`, subject, reason, enabled FROM '. $this->ID .'_vacations WHERE user_id = ? LIMIT 1', $this->rc->get_user_id());
+            $form->setDefaults($db->fetch_assoc($res));
+        }
+
+        if ($form->isSuccess()) {
+            $values = $form->getValues(true);
+            $res = $db->query(<<<SQL
+INSERT INTO {$this->ID}_vacations (`from`, `to`, subject, reason, enabled, user_id)
+  VALUES (?, ?, ?, ?, ?, ?)
+  ON DUPLICATE KEY UPDATE
+    `from` = ?,
+    `to` = ?,
+    `subject` = ?,
+    `reason` = ?,
+    `enabled` = ?;
+SQL
+                , $values['from'], $values['to'], $values['subject'], $values['reason'],
+                $values['enabled'] ?: 0, $this->rc->get_user_id(),
+                $values['from'], $values['to'], $values['subject'], $values['reason'],
+                $values['enabled'] ?: 0
+            );
+
+            if (!$res) {
+                $form->addError('cannot insert vacation');
+                $this->rc->output->show_message('cannot store vacation', 'error');
+            } else {
+                $this->rc->output->show_message('saved', 'confirmation');
+            }
+        }
+
+        return (string) $form;
+    }
+
+    function manageprocmail_vacation()
+    {
+        $this->register_handler('vacationform', [$this, 'vacationform']);
+
+        $this->rc->output->send('manageprocmail.vacation');
     }
 
 
