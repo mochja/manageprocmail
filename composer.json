@@ -1,5 +1,5 @@
 {
-  "name": "mochja/manageprocmail",
+  "name": "mochja/mochja_manageprocmail",
   "type": "roundcube-plugin",
   "license": "MIT",
   "keywords": [
@@ -21,11 +21,8 @@
   "require": {
     "nette/forms": "^2.4",
     "roundcube/plugin-installer": ">=0.1.6",
-    "league/flysystem": "^1.0"
-  },
-  "require-dev": {
-    "tracy/tracy": "^2.5",
-    "phpunit/phpunit": "^4.8.36 || ^5.7.21"
+    "league/flysystem": "^1.0",
+    "tracy/tracy": "^2.5"
   },
   "autoload": {
     "classmap": [
@@ -34,7 +31,9 @@
   },
   "extra": {
     "roundcube": {
-      "sql-dir": "SQL"
+      "sql-dir": "SQL",
+      "post-install-script": "composer install",
+      "post-update-script": "composer install"
     }
   }
 }
