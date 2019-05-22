@@ -22,7 +22,8 @@
     "nette/forms": "^2.4",
     "roundcube/plugin-installer": ">=0.1.6",
     "league/flysystem": "^1.0",
-    "tracy/tracy": "^2.5"
+    "tracy/tracy": "^2.5",
+    "latte/latte": "^2.5"
   },
   "autoload": {
     "classmap": [

@@ -1,0 +1,62 @@
+{form $vacationForm, class => 'propform boxcontent'}
+	<fieldset>
+		<table class="propform">
+			<tr>
+				<td class="title">{label from}</td>
+				<td>{input from}</td>
+			</tr>
+			<tr>
+				<td class="title">{label to}</td>
+				<td>{input to}</td>
+			</tr>
+			<tr>
+				<td class="title">{label subject}</td>
+				<td>{input subject, size => 60}</td>
+			</tr>
+			<tr>
+				<td class="title" style="vertical-align: text-top">{label reason}</td>
+				<td>{input reason}</td>
+			</tr>
+		</table>
+
+		{input save, class => 'button'} {label enabled}{input enabled}{/label}
+	</fieldset>
+{/}
+
+<script>
+    $(function() {
+        if ($.datepicker) {
+            var dateFormat = "yy-mm-dd",
+                from = $("#frm-from")
+                    .datepicker({
+                        dateFormat: dateFormat,
+                        defaultDate: "+1w",
+                        changeMonth: true,
+                        numberOfMonths: 1
+                    })
+                    .on("change", function () {
+                        to.datepicker("option", "minDate", getDate(this));
+                    }),
+                to = $("#frm-to").datepicker({
+                    dateFormat: dateFormat,
+                    defaultDate: "+1w",
+                    changeMonth: true,
+                    numberOfMonths: 1
+                })
+                    .on("change", function () {
+                        from.datepicker("option", "maxDate", getDate(this));
+                    });
+
+            function getDate(element) {
+                var date;
+                try {
+                    date = $.datepicker.parseDate(dateFormat, element.value);
+                } catch (error) {
+                    date = null;
+                }
+
+                return date;
+            }
+        }
+    })
+</script>

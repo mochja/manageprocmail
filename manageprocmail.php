@@ -47,11 +47,27 @@ class manageprocmail extends rcube_plugin
 
     private $transport;
 
+    /**
+     * @var Latte\Engine
+     */
+    private $latte;
+
+
+    /** @var array */
+    private $params;
+
+    private $view;
+
 
 
     function init()
     {
         $this->rc = rcube::get_instance();
+
+        $this->latte = new Latte\Engine;
+        $this->latte->setTempDirectory($this->rc->config->get('temp_dir', sys_get_temp_dir()));
+        $this->latte->setLoader(new \Latte\Loaders\FileLoader(__DIR__ . DIRECTORY_SEPARATOR . $this->local_skin_path() . DIRECTORY_SEPARATOR . 'templates'));
+        Nette\Bridges\FormsLatte\FormMacros::install($this->latte->getCompiler());
 
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
         $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
@@ -70,6 +86,15 @@ class manageprocmail extends rcube_plugin
             'username' => 'admin',
             'password' => '123456',
         ]);
+
+        $this->register_handler('template', [$this, 'render_template']);
+    }
+
+
+    function render_template() {
+        $template = $this->latte->createTemplate($this->view, $this->params);
+
+        return $template->capture([$template, 'render']);
     }
 
 
@@ -625,15 +650,13 @@ class manageprocmail extends rcube_plugin
         return $out;
     }
 
-    function vacationform($attrib)
+    function vacationform()
     {
         $db = $this->rc->get_dbh();
         $form = new \Nette\Forms\Form();
         $form->setAction($this->rc->url([
             'action' => $this->rc->action,
         ]));
-        $form->getElementPrototype()
-            ->addAttributes($attrib);
 
         $form->addText('from', 'From')
             ->getControlPrototype()
@@ -644,7 +667,7 @@ class manageprocmail extends rcube_plugin
 
         $form->addText('subject', 'Subject');
         $form->addCheckbox('enabled', 'Enabled');
-        $form->addTextArea('reason', 'Reason');
+        $form->addTextArea('reason', 'Reason', 80, 15);
 
         $form->addSubmit('save', 'Save');
 
@@ -693,12 +716,19 @@ SQL
             }
         }
 
-        return (string) $form;
+        return $form;
     }
 
     function manageprocmail_vacation()
     {
-        $this->register_handler('vacationform', [$this, 'vacationform']);
+        // $this->register_handler('vacationform', [$this, 'vacationform']);
+
+        $this->view = 'vacation.latte';
+        $this->params = [
+            'vacationForm' => $this->vacationform([]),
+        ];
+
+
 
         $this->rc->output->send('manageprocmail.vacation');
     }
