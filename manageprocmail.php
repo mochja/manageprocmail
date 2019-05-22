@@ -639,11 +639,19 @@ class manageprocmail extends rcube_plugin
 
         $db = $this->rc->get_dbh();
 
-        $result = $db->query(sprintf('SELECT id, %s, enabled FROM %s WHERE user_id = ?',
-            $db->quote_identifier('name'),
-            $db->table_name('manageprocmail_filters', true)), $this->rc->get_user_id());
+        $res = $db->query(sprintf('SELECT id, `name`, enabled FROM %s WHERE user_id = ?',
+            $db->table_name($this->ID . '_filters', true)), $this->rc->get_user_id());
 
-        $out = $this->rc->table_output($attrib, $result, $a_show_cols, 'id');
+        $items = [];
+        while ($filter = $db->fetch_assoc($res)) {
+            $items[] = [
+                'id' => $filter['id'],
+                'name' => \Nette\Utils\Html::el('span')
+                    ->setAttribute('style', 'height: 1em; width: 1em; background-color: #' . ($filter['enabled'] ? '27ae60' : 'e74c3c') . '; border-radius: 50%; display: inline-block') . '&nbsp;' . \Nette\Utils\Html::el('span')->setText($filter['name']),
+            ];
+        }
+
+        $out = $this->rc->table_output($attrib, $items, $a_show_cols, 'id');
         $this->rc->output->add_gui_object('filterslist', $attrib['id']);
         $this->rc->output->include_script('list.js');
 
@@ -725,10 +733,8 @@ SQL
 
         $this->view = 'vacation.latte';
         $this->params = [
-            'vacationForm' => $this->vacationform([]),
+            'vacationForm' => $this->vacationform(),
         ];
-
-
 
         $this->rc->output->send('manageprocmail.vacation');
     }
