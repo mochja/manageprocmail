@@ -163,7 +163,14 @@ class manageprocmail extends rcube_plugin
         $moveTo = $form->addCheckbox('message_action_move_to', 'Move To');
         $copyTo = $form->addCheckbox('message_action_copy_to', 'Copy To');
 
-        $folders = $this->rc->get_storage()->list_folders();
+        /** @var rcube_imap $storage */
+        $storage = $this->rc->get_storage();
+
+        $folders = array_filter($storage->list_folders(), function($folder) use ($storage) {
+            \Tracy\Debugger::barDump($storage->folder_data($folder), $folder);
+
+            return true;
+        });
         $folders = array_combine($folders, $folders);
 
         $copyToFolders = $form->addSelect('message_action_copy_to_folder', 'Folder', $folders);
