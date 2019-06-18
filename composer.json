@@ -32,9 +32,7 @@
   },
   "extra": {
     "roundcube": {
-      "sql-dir": "SQL",
-      "post-install-script": "composer install",
-      "post-update-script": "composer install"
+      "sql-dir": "SQL"
     }
   }
 }
