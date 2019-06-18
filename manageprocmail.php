@@ -78,12 +78,10 @@ class manageprocmail extends rcube_plugin
             $this->add_hook('settings_actions', array($this, 'settings_actions'));
         }
 
-        $this->transport = new Ingo_Transport_Flysystem([
-            'port' => 2121,
+        $this->load_config('config.inc.php.dist');
+        $this->load_config();
 
-            'username' => 'admin',
-            'password' => '123456',
-        ]);
+        $this->transport = new Ingo_Transport_Flysystem($this->rc->config->get('manageprocmail_transport', []));
 
         $this->register_handler('template', [$this, 'render_template']);
     }

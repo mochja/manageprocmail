@@ -1,0 +1,26 @@
+<?php
+
+$config['manageprocmail_transport'] = [
+    'host'          => 'localhost',
+    'port'          => 21,
+
+    // this should usualy be .procmailrc file
+    'filename'      => '.ingo_filter',
+
+    // currently only ftp is supported
+    'vfstype'       => 'ftp',
+
+    // leave empty to use home directory,
+    // available placeholders
+    //  %u for username
+    //  %d for domain
+    //  %u_full for whole email address
+    'root'          => '',
+
+    // file permission
+    'visibility'    => 'private',
+
+    // set to null to inherit users login credentials from roundcube
+    'password' => null,
+    'username' => null,
+];
