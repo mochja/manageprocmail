@@ -318,13 +318,18 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
 
         $reverseCondition = false;
         switch ($match) {
-            case 'not regex':
-                $reverseCondition = true;
-                // fall through
-            case 'regex':
+        case 'not regex':
+            $reverseCondition = true;
+            // fall through
+        case 'regex':
             $string .= $prefix . $condition['value'];
-            break;
+        break;
 
+        case 'not is':
+            $reverseCondition = true;
+        case 'is':
+            $string .= '\ *' .preg_quote($condition['value']) . '$';
+            break;
         case 'address':
             $string .= '(.*\<)?' . preg_quote($condition['value']);
             break;

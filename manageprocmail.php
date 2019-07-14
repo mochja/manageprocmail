@@ -10,6 +10,7 @@ function cToIngo($field)
         'header::To' => 'Destination',
         'header::Cc' => 'Cc',
         'header::ListId' => 'List-ID',
+        'header::ReplyTo' => 'Reply-To',
         'body::body' => 'Body',
     ];
 
@@ -21,8 +22,8 @@ function typeToIngo($type)
     $map = [
         'contains' => 'contains',
         'notcontains' => 'not contain',
-        'is' => 'regex',
-        'notis' => 'not regex',
+        'is' => 'is',
+        'notis' => 'not is',
         'exists' => 'contains',
         'notexists' => 'not contain',
         'regex' => 'regex',
@@ -129,14 +130,15 @@ class manageprocmail extends rcube_plugin
             'header::To' => 'to',
             'header::Cc' => 'cc',
             'header::ListId' => 'listid',
+            'header::ReplyTo' => 'replyto',
             'body::body' => 'body',
         ]));
 
         $ruleContainer->addSelect('rule_op', 'Operation', [
             'contains' => $this->gettext('filtercontains'),
             'notcontains' => $this->gettext('filternotcontains'),
-//            'is' => $this->gettext('filteris'),
-//            'notis' => $this->gettext('filterisnot'),
+            'is' => $this->gettext('filteris'),
+            'notis' => $this->gettext('filterisnot'),
             'exists' => $this->gettext('filterexists'),
             'notexists' => $this->gettext('filternotexists'),
             'regex' => $this->gettext('filterregex'),
