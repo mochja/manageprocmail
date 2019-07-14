@@ -1,0 +1,34 @@
+<roundcube:object name="doctype" value="html5" />
+<html>
+<head>
+    <title><roundcube:object name="pagetitle" /></title>
+    <roundcube:include file="/includes/links.html" />
+</head>
+<roundcube:if condition="env:extwin" /><body class="noscroll extwin"><roundcube:else /><body class="noscroll"><roundcube:endif />
+
+<roundcube:include file="/includes/header.html" />
+
+<h1 class="voice"><roundcube:label name="settings" /> : <roundcube:label name="manageprocmail.filters" /></h1>
+
+<div id="mainscreen" class="offset">
+
+    <roundcube:include file="/includes/settingstabs.html" />
+    <div id="settings-right" role="main">
+        <div class="uibox contentbox">
+            <h1 class="boxtitle"><roundcube:label name="manageprocmail.error" /></h1>
+
+            <div class="boxcontent">
+                <p>Invalid content of stored script.</p>
+
+                <roundcube:button type="input" label="manageprocmail.replacescript" command="manageprocmail.replace_script" />
+                <roundcube:button type="input" label="manageprocmail.appendscript" command="manageprocmail.append_script" />
+                <roundcube:button type="input" label="manageprocmail.prependscript" command="manageprocmail.prepend_script" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<roundcube:include file="/includes/footer.html" />
+
+</body>
+</html>
