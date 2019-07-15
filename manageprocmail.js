@@ -13,6 +13,18 @@ if (window.rcmail) {
                     .init();
             }
 
+            if (rcmail.gui_objects.vacationslist) {
+
+                rcmail.vacations_list = new rcube_list_widget(rcmail.gui_objects.vacationslist,
+                    {multiselect: false, draggable: false, keyboard: true});
+
+                rcmail.vacations_list
+                    .addEventListener('select', function (e) {
+                        rcmail.manageprocmail_select_vacation(e);
+                    })
+                    .init();
+            }
+
             (function () {
                 if (rcmail.gui_objects.forward_to_checkbox) {
                     var $list = $(rcmail.gui_objects.forward_to_list).parent().parent();
@@ -66,6 +78,11 @@ if (window.rcmail) {
                 rcmail.load_manageprocmailframe();
             }, true);
 
+            rcmail.register_command('plugin.manageprocmail-add-vacation', function () {
+                rcmail.vacations_list.clear_selection();
+                rcmail.load_manageprocmailvacationframe();
+            }, true);
+
             rcmail.register_command('plugin.manageprocmail-del', function () {
                 var id = rcmail.filters_list.get_single_selection();
 
@@ -81,15 +98,22 @@ if (window.rcmail) {
                     }
                 }
             }, false);
-            //
-            // rcmail.register_command('plugin.manageprocmail-replace-script', function() {
-            //     var lock = rcmail.set_busy(true, 'loading');
-            //
-            //     rcmail.http_get('plugin.manageprocmail-replace-script', {}, lock);
-            // }, true);
         }
     })
 }
+
+// Vacation selection
+rcube_webmail.prototype.manageprocmail_select_vacation = function (list) {
+    var id = list.get_single_selection();
+
+    if (id != null) {
+        id = list.rows[id].uid;
+        this.load_manageprocmailvacationframe('_fid=' + id);
+    }
+
+    var has_id = typeof (id) != 'undefined' && id != null;
+    this.enable_command('plugin.manageprocmail-vacation-del', has_id);
+};
 
 // Filter selection
 rcube_webmail.prototype.manageprocmail_select = function (list) {
@@ -112,6 +136,18 @@ rcube_webmail.prototype.load_manageprocmailframe = function (add_url) {
         target = window.frames[this.env.contentframe];
         target.location.href = this.env.comm_path
             + '&_action=plugin.manageprocmail-editform&_framed=1&_unlock=' + lock
+            + (add_url ? ('&' + add_url) : '');
+    }
+};
+
+// load vacation frame
+rcube_webmail.prototype.load_manageprocmailvacationframe = function (add_url) {
+    if (this.env.contentframe && window.frames && window.frames[this.env.contentframe]) {
+        var lock = this.set_busy(true, 'loading');
+
+        target = window.frames[this.env.contentframe];
+        target.location.href = this.env.comm_path
+            + '&_action=plugin.manageprocmail-vacation-editform&_framed=1&_unlock=' + lock
             + (add_url ? ('&' + add_url) : '');
     }
 };

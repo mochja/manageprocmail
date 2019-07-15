@@ -74,6 +74,7 @@ class manageprocmail extends rcube_plugin
         $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
         $this->register_action('plugin.manageprocmail-del', array($this, 'manageprocmail_delete'));
         $this->register_action('plugin.manageprocmail-vacation', array($this, 'manageprocmail_vacation'));
+        $this->register_action('plugin.manageprocmail-vacation-editform', array($this, 'manageprocmail_vacation_editform'));
 
         $this->register_action('plugin.manageprocmail-replace-script', array($this, 'manageprocmail_replace_script'));
         $this->register_action('plugin.manageprocmail-append-script', array($this, 'manageprocmail_append_script'));
@@ -781,6 +782,12 @@ class manageprocmail extends rcube_plugin
     }
 
 
+    function vacation_frame($attrib)
+    {
+        return $this->rc->output->frame($attrib, true);
+    }
+
+
 
     function filter_frame($attrib)
     {
@@ -810,6 +817,35 @@ class manageprocmail extends rcube_plugin
         $out = $this->rc->table_output($attrib, $items, $a_show_cols, 'id');
         $this->rc->output->add_gui_object('filterslist', $attrib['id']);
         $this->rc->output->include_script('list.js');
+
+        return $out;
+    }
+
+
+    function vacation_list($attrib)
+    {
+        $a_show_cols = array('name');
+
+        $db = $this->rc->get_dbh();
+
+        $res = $db->query(sprintf('SELECT id, `subject`, enabled FROM %s WHERE user_id = ?',
+            $db->table_name($this->ID . '_vacations', true)), $this->rc->get_user_id());
+
+        $items = [];
+        while ($filter = $db->fetch_assoc($res)) {
+            $items[] = [
+                'id' => $filter['id'],
+                'name' => \Nette\Utils\Html::el('span')
+                        ->setAttribute('style', 'height: 1em; width: 1em; background-color: #' . ($filter['enabled'] ? '27ae60' : 'e74c3c') . '; border-radius: 50%; display: inline-block') . '&nbsp;' . \Nette\Utils\Html::el('span')->setText($filter['subject']),
+            ];
+        }
+
+        $out = $this->rc->table_output($attrib, $items, $a_show_cols, 'id');
+        $this->rc->output->add_gui_object('vacationslist', $attrib['id']);
+        $this->rc->output->include_script('list.js');
+
+        \Tracy\Debugger::$maxLength = 999999;
+        Tracy\Debugger::barDump($out);
 
         return $out;
     }
@@ -885,16 +921,28 @@ SQL
 
     function manageprocmail_vacation()
     {
-        // $this->register_handler('vacationform', [$this, 'vacationform']);
+        if ($this->rc->output->type == 'html') {
+            $this->include_script('manageprocmail.js');
+        }
 
+        $this->rc->output->add_handlers(array(
+            'vacationslist' => array($this, 'vacation_list'),
+            'vacationframe' => array($this, 'vacation_frame'),
+        ));
+
+        $this->rc->output->send('manageprocmail.vacation');
+    }
+
+
+    function manageprocmail_vacation_editform()
+    {
         $this->view = 'vacation.latte';
         $this->params = [
             'vacationForm' => $this->vacationform(),
         ];
 
-        $this->rc->output->send('manageprocmail.vacation');
+        $this->rc->output->send('manageprocmail.vacationform');
     }
-
 
     function manageprocmail_delete()
     {

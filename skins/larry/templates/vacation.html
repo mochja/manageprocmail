@@ -1,32 +1,76 @@
 <roundcube:object name="doctype" value="html5" />
 <html>
 <head>
-<title><roundcube:object name="pagetitle" /></title>
-<roundcube:include file="/includes/links.html" />
+  <title><roundcube:object name="pagetitle" /></title>
+  <roundcube:include file="/includes/links.html" />
 </head>
-<body class="noscroll">
-
-<style>
-  #manageprocmail-vacation {
-    margin-left: 210px;
-  }
-</style>
+<roundcube:if condition="env:extwin" /><body class="noscroll extwin"><roundcube:else /><body class="noscroll"><roundcube:endif />
 
 <roundcube:include file="/includes/header.html" />
 
+<h1 class="voice"><roundcube:label name="settings" /> : <roundcube:label name="manageprocmail.vacations" /></h1>
+
 <div id="mainscreen" class="offset">
 
-<h1 class="voice"><roundcube:label name="settings" /> : <roundcube:label name="manageprocmail.vacation" /></h1>
+  <roundcube:include file="/includes/settingstabs.html" />
 
-<roundcube:include file="/includes/settingstabs.html" />
+  <style>
+    #vacationslist {
+      width: 100%;
+      table-layout: fixed;
+    }
+    #vacationslistbox {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 260px;
+      bottom: 0;
+    }
 
-<div id="manageprocmail-vacation" class="uibox contentbox" role="main" aria-labelledby="aria-label-vacationform">
-  <div>
-    <h2 class="boxtitle" id="aria-label-vacationform"><roundcube:label name="manageprocmail.vacation" /></h2>
-    <roundcube:object name="plugin.template" />
+    #vacation-box {
+      position: absolute;
+      top: 0;
+      left: 272px;
+      right: 0;
+      bottom: 0;
+    }
+  </style>
+
+  <div id="settings-right" role="main">
+
+    <div id="vacationslistbox" class="uibox listbox" aria-labelledby="aria-label-vacations">
+      <h2 class="boxtitle" id="aria-label-vacations"><roundcube:label name="manageprocmail.vacations" /></h2>
+      <div class="scroller withfooter">
+        <roundcube:object name="vacationslist" id="vacationslist" class="listing" summary="manageprocmail.ariasummaryvacationslist" noheader="true" ishtml="true" role="listbox" />
+      </div>
+      <div class="boxfooter"><roundcube:button command="plugin.manageprocmail-add-vacation" type="link" title="manageprocmail.vacationadd" class="listbutton add disabled" classAct="listbutton add" innerClass="inner" content="+" /><roundcube:button name="vacationmenulink" id="vacationmenulink" type="link" title="moreactions" class="listbutton groupactions" onclick="return UI.toggle_popup('vacationmenu', event)" innerClass="inner" content="&#9881;" aria-haspopup="true" aria-expanded="false" aria-owns="vacationmenu-menu" />
+      </div>
+    </div>
+
+    <div id="vacation-box" class="uibox contentbox">
+      <div class="iframebox" role="complementary" aria-labelledby="aria-label-vacationform">
+        <h2 id="aria-label-vacationframe" class="voice"><roundcube:label name="manageprocmail.arialabelvacationform" /></h2>
+        <roundcube:object name="vacationframe" id="vacation-frame" style="width: 100%; height:100%" frameborder="0" src="/watermark.html" title="manageprocmail.arialabelvacationform" />
+      </div>
+    </div>
+
   </div>
 </div>
 
+<div id="vacationsetmenu" class="popupmenu" aria-hidden="true">
+  <h3 id="aria-label-setactions" class="voice"><roundcube:label name="manageprocmail.arialabelvacationsetactions" /></h3>
+  <ul class="toolbarmenu" id="vacationsetmenu-menu" role="menu" aria-labelledby="aria-label-setactions">
+    <li role="menuitem" class="separator_above"><roundcube:button command="plugin.manageprocmail-setget" label="download" classAct="active" /></li>
+    <roundcube:container name="vacationsetoptions" id="vacationsetmenu" />
+  </ul>
+</div>
+
+<div id="vacationmenu" class="popupmenu" aria-hidden="true">
+  <h3 id="aria-label-vacationactions" class="voice"><roundcube:label name="manageprocmail.arialabelvacationactions" /></h3>
+  <ul class="toolbarmenu" id="vacationmenu-menu" role="menu" aria-labelledby="aria-label-vacationactions">
+    <li role="menuitem"><roundcube:button command="plugin.manageprocmail-del" label="delete" classAct="active" /></li>
+    <roundcube:container name="vacationoptions" id="vacationmenu" />
+  </ul>
 </div>
 
 <roundcube:include file="/includes/footer.html" />

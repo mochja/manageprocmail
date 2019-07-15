@@ -1,0 +1,17 @@
+<roundcube:object name="doctype" value="html5" />
+<html>
+<head>
+  <title><roundcube:object name="pagetitle" /></title>
+  <roundcube:include file="/includes/links.html" />
+</head>
+<body class="iframe <roundcube:exp expression="env:task != 'mail' ? ' floatingbuttons' : ' mail'" />">
+
+<div id="manageprocmail-vacation" class="contentbox" role="main" aria-labelledby="aria-label-vacationform">
+  <div>
+    <h2 class="boxtitle" id="aria-label-vacationform"><roundcube:label name="manageprocmail.vacation" /></h2>
+    <roundcube:object name="plugin.template" />
+  </div>
+</div>
+
+</body>
+</html>
