@@ -54,6 +54,9 @@ $labels['messagekeep'] = 'Keep message in Inbox';
 $labels['filterdef'] = 'Filter definition';
 $labels['listid'] = 'List ID';
 
+$labels['vacation'] = 'Vacation';
+$labels['vacations'] = 'Vacations';
+
 $messages = [];
 $messages['removed'] = 'removed';
 

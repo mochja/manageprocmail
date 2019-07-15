@@ -98,6 +98,22 @@ if (window.rcmail) {
                     }
                 }
             }, false);
+
+            rcmail.register_command('plugin.manageprocmail-vacation-del', function () {
+                var id = rcmail.vacations_list.get_single_selection();
+
+                if (id != null) {
+                    id = rcmail.vacations_list.rows[id].uid;
+                    if (confirm('Are you sure?')) {
+                        var lock = rcmail.set_busy(true, 'loading');
+
+                        rcmail.http_get('plugin.manageprocmail-vacation-del', {_fid: id}, lock);
+                        rcmail.vacations_list.clear_selection();
+                        rcmail.vacations_list.remove_row(id);
+                        rcmail.vacations_list.select_first();
+                    }
+                }
+            }, true);
         }
     })
 }

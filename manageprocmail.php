@@ -73,6 +73,7 @@ class manageprocmail extends rcube_plugin
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
         $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
         $this->register_action('plugin.manageprocmail-del', array($this, 'manageprocmail_delete'));
+        $this->register_action('plugin.manageprocmail-vacation-del', array($this, 'manageprocmail_vacation_delete'));
         $this->register_action('plugin.manageprocmail-vacation', array($this, 'manageprocmail_vacation'));
         $this->register_action('plugin.manageprocmail-vacation-editform', array($this, 'manageprocmail_vacation_editform'));
 
@@ -409,11 +410,10 @@ class manageprocmail extends rcube_plugin
         }
 
         $res = $db->query('SELECT `id`, `from`, `to`, 
-            `exceptions`, `subject`, `reason`, `ingorelist`, `days`, `enabled`
-            FROM ' . $this->ID . '_vacations WHERE user_id = ? LIMIT 1', $this->rc->get_user_id());
-        $vacation = $db->fetch_assoc($res);
+            `exceptions`, `subject`, `reason`, `ignorelist`, `days`, `enabled`
+            FROM ' . $this->ID . '_vacations WHERE user_id = ?', $this->rc->get_user_id());
 
-        if ($vacation) {
+        while (($vacation = $db->fetch_assoc($res))) {
             $recipe = new Ingo_Script_Procmail_Recipe(
                 array(
                     'action' => 'Ingo_Rule_System_Vacation',
@@ -433,6 +433,7 @@ class manageprocmail extends rcube_plugin
             );
             $script[] = $recipe;
         }
+        \Tracy\Debugger::barDump($vacation);
 
         $content = implode(PHP_EOL, array_map(function($recipe) { return $recipe->generate(); }, $script));
 
@@ -858,7 +859,7 @@ class manageprocmail extends rcube_plugin
         $db = $this->rc->get_dbh();
         $form = new \Nette\Forms\Form();
         if ($id) {
-            $form->setAction($this->rc->url(array('action' => $this->rc->action, '_fid' => $fid)));
+            $form->setAction($this->rc->url(array('action' => $this->rc->action, '_fid' => $id)));
         } else {
             $form->setAction($this->rc->url(array('action' => $this->rc->action)));
         }
@@ -909,6 +910,8 @@ SQL;
                 $values['enabled'] ?: 0, $this->rc->get_user_id(), $id
             );
 
+            $newId = $db->insert_id("{$this->ID}_vacations");
+
             try {
                 $currentScript = $this->transport->getScript();
                 $currentScript['script'] = $this->generate_script($currentScript);
@@ -926,6 +929,10 @@ SQL;
                 $this->rc->output->show_message('cannot store vacation', 'error');
             } else {
                 $this->rc->output->show_message('saved', 'confirmation');
+                $this->rc->output->redirect([
+                    'action' => $this->rc->action,
+                    '_fid' => $res ? ($id ?: $newId) : 0,
+                ]);
             }
         }
 
@@ -985,6 +992,37 @@ SQL;
 
             if (!$res) {
                 $this->rc->output->raise_error(404, 'Filter not found!');
+            }
+        }
+    }
+
+
+    function manageprocmail_vacation_delete()
+    {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+
+        if ($fid) {
+            $db = $this->rc->get_dbh();
+
+            $db->startTransaction();
+
+            $res = $db->query('DELETE FROM '. $this->ID . '_vacations WHERE user_id = ? AND id = ?',
+                $this->rc->get_user_id(), $fid);
+
+            try {
+                $currentScript = $this->transport->getScript();
+                $currentScript['script'] = $this->generate_script($currentScript);
+
+                $this->transport->setScriptActive($currentScript);
+                $db->endTransaction();
+            } catch (Exception $e) {
+                rcmail::write_log('errors', $e->getMessage());
+                $res = false;
+                $db->rollbackTransaction();
+            }
+
+            if (!$res) {
+                $this->rc->output->raise_error(404, 'Vacation not found!');
             }
         }
     }
