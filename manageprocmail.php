@@ -302,6 +302,9 @@ class manageprocmail extends rcube_plugin
 
     function generate_script($currentScript = [])
     {
+        if (!isset($currentScript['script'])) {
+            $currentScript['script'] = '';
+        }
         $script = [];
 
         $filters = [];
@@ -700,7 +703,45 @@ class manageprocmail extends rcube_plugin
     {
         try {
             $currentScript = $this->transport->getScript();
-            $currentScript['script'] = $this->generate_script($currentScript);
+            $currentScript['script'] = $this->generate_script([
+                'script' => '',
+            ]);
+
+            $this->transport->setScriptActive($currentScript);
+        } catch (Exception $e) {
+            rcmail::write_log('errors', $e->getMessage());
+            return;
+        }
+
+        $this->rc->output->redirect([
+            'action' => 'plugin.manageprocmail',
+        ]);
+    }
+
+
+    function manageprocmail_prepend_script()
+    {
+        try {
+            $currentScript = $this->transport->getScript();
+            $currentScript['script'] = $currentScript['script'] . PHP_EOL . $this->generate_script();
+
+            $this->transport->setScriptActive($currentScript);
+        } catch (Exception $e) {
+            rcmail::write_log('errors', $e->getMessage());
+            return;
+        }
+
+        $this->rc->output->redirect([
+            'action' => 'plugin.manageprocmail',
+        ]);
+    }
+
+
+    function manageprocmail_append_script()
+    {
+        try {
+            $currentScript = $this->transport->getScript();
+            $currentScript['script'] = $this->generate_script() . $currentScript['script'];
 
             $this->transport->setScriptActive($currentScript);
         } catch (Exception $e) {
