@@ -15,7 +15,7 @@ $config['manageprocmail_transport'] = [
     //  %u for username
     //  %d for domain
     //  %u_full for whole email address
-    'root'          => '',
+    'root'          => '.',
 
     // file permission
     'visibility'    => 'private',
