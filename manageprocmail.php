@@ -853,13 +853,15 @@ class manageprocmail extends rcube_plugin
         return $out;
     }
 
-    function vacationform()
+    function vacationform($id)
     {
         $db = $this->rc->get_dbh();
         $form = new \Nette\Forms\Form();
-        $form->setAction($this->rc->url([
-            'action' => $this->rc->action,
-        ]));
+        if ($id) {
+            $form->setAction($this->rc->url(array('action' => $this->rc->action, '_fid' => $fid)));
+        } else {
+            $form->setAction($this->rc->url(array('action' => $this->rc->action)));
+        }
 
         $form->addText('from', 'From')
             ->getControlPrototype()
@@ -875,28 +877,36 @@ class manageprocmail extends rcube_plugin
         $form->addSubmit('save', 'Save');
 
         if (!$form->isSubmitted()) {
-            $res = $db->query('SELECT `from`, `to`, subject, reason, enabled FROM '. $this->ID .'_vacations WHERE user_id = ? LIMIT 1', $this->rc->get_user_id());
-            $form->setDefaults($db->fetch_assoc($res) ?: []);
+            $res = $db->query('SELECT `from`, `to`, subject, reason, enabled FROM '. $this->ID .'_vacations WHERE user_id = ? AND id = ? LIMIT 1', $this->rc->get_user_id(), $id);
+            $vacation = $db->fetch_assoc($res);
+            if (!$vacation && $id) {
+                rcube::raise_error([
+                    'code' => 403,
+                    'message' => 'permission denied'
+                ], false, true);
+
+                return;
+            }
+            $form->setDefaults($vacation ?: []);
         }
 
         if ($form->isSuccess()) {
             $values = $form->getValues(true);
             $db->startTransaction();
 
-            $res = $db->query(<<<SQL
-INSERT INTO {$this->ID}_vacations (`from`, `to`, subject, reason, enabled, user_id)
-  VALUES (?, ?, ?, ?, ?, ?)
-  ON DUPLICATE KEY UPDATE
-    `from` = ?,
-    `to` = ?,
-    `subject` = ?,
-    `reason` = ?,
-    `enabled` = ?;
-SQL
-                , $values['from'], $values['to'], $values['subject'], $values['reason'],
-                $values['enabled'] ?: 0, $this->rc->get_user_id(),
-                $values['from'], $values['to'], $values['subject'], $values['reason'],
-                $values['enabled'] ?: 0
+            if ($id) {
+                $sql = <<<SQL
+UPDATE {$this->ID}_vacations SET 
+    `from` = ?, `to` = ?, subject = ?, reason = ?, enabled = ? WHERE user_id = ? AND id = ?
+SQL;
+            } else {
+                $sql = <<<SQL
+INSERT INTO {$this->ID}_vacations (`from`, `to`, subject, reason, enabled, user_id, id) VALUES (?, ?, ?, ?, ?, ?, ?)
+SQL;
+            }
+
+            $res = $db->query($sql, $values['from'], $values['to'], $values['subject'], $values['reason'],
+                $values['enabled'] ?: 0, $this->rc->get_user_id(), $id
             );
 
             try {
@@ -939,9 +949,11 @@ SQL
 
     function manageprocmail_vacation_editform()
     {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+
         $this->view = 'vacation.latte';
         $this->params = [
-            'vacationForm' => $this->vacationform(),
+            'vacationForm' => $this->vacationform($fid),
         ];
 
         $this->rc->output->send('manageprocmail.vacationform');
