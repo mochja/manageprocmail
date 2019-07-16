@@ -965,11 +965,11 @@ class manageprocmail extends rcube_plugin
             if ($id) {
                 $sql = <<<SQL
 UPDATE {$this->ID}_vacations SET 
-    `from` = ?, `to` = ?, subject = ?, reason = ?, enabled = ? WHERE user_id = ? AND id = ?
+    `from` = ?, `to` = ?, subject = ?, reason = ?, enabled = ?, ignorelist = 1 WHERE user_id = ? AND id = ?
 SQL;
             } else {
                 $sql = <<<SQL
-INSERT INTO {$this->ID}_vacations (`from`, `to`, subject, reason, enabled, user_id, id) VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO {$this->ID}_vacations (`from`, `to`, subject, reason, enabled, user_id, id, ignorelist) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
 SQL;
             }
 
