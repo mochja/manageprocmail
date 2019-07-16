@@ -164,15 +164,14 @@ class manageprocmail extends rcube_plugin
             'notregex' => $this->gettext('filternotregex'),
         ]);
 
+        $regexValidator = function(\Nette\Forms\IControl $control) {
+            return preg_match('~' . str_replace('~', '\~', $control->getValue()) . '~', null) !== false;
+        };
         $ruleContainer->addText('rule_op_against', 'Rule operation against')
             ->addConditionOn($op, \Nette\Forms\Form::EQUAL, 'regex')
-                ->addRule(function(\Nette\Forms\IControl $control) {
-                    return preg_match('~' . $control->getValue() . '~', null) !== false;
-                }, 'invalid regex')
+                ->addRule($regexValidator, 'invalid regex')
             ->addConditionOn($op, \Nette\Forms\Form::EQUAL, 'notregex')
-                ->addRule(function(\Nette\Forms\IControl $control) {
-                    return preg_match('~' . $control->getValue() . '~', null) !== false;
-                }, 'invalid regex');
+                ->addRule($regexValidator, 'invalid regex');
 
         $ruleContainer->addButton('remove', 'X')
             ->getControlPrototype()
