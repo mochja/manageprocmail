@@ -113,7 +113,7 @@ if (window.rcmail) {
                         rcmail.vacations_list.select_first();
                     }
                 }
-            }, true);
+            }, false);
         }
     })
 }
@@ -162,7 +162,6 @@ rcube_webmail.prototype.load_manageprocmailvacationframe = function (id) {
     if ((win = this.get_frame_window(this.env.contentframe))) {
         var lock = this.set_busy(true, 'loading');
 
-        this.set_busy(true);
         this.location_href($.extend({}, {
             _action:'plugin.manageprocmail-vacation-editform',
             _unlock:lock,
