@@ -124,7 +124,7 @@ rcube_webmail.prototype.manageprocmail_select_vacation = function (list) {
 
     if (id != null) {
         id = list.rows[id].uid;
-        this.load_manageprocmailvacationframe('_fid=' + id);
+        this.load_manageprocmailvacationframe(id);
     }
 
     var has_id = typeof (id) != 'undefined' && id != null;
@@ -157,13 +157,44 @@ rcube_webmail.prototype.load_manageprocmailframe = function (add_url) {
 };
 
 // load vacation frame
-rcube_webmail.prototype.load_manageprocmailvacationframe = function (add_url) {
-    if (this.env.contentframe && window.frames && window.frames[this.env.contentframe]) {
+rcube_webmail.prototype.load_manageprocmailvacationframe = function (id) {
+    var win;
+    if ((win = this.get_frame_window(this.env.contentframe))) {
         var lock = this.set_busy(true, 'loading');
 
-        target = window.frames[this.env.contentframe];
-        target.location.href = this.env.comm_path
-            + '&_action=plugin.manageprocmail-vacation-editform&_framed=1&_unlock=' + lock
-            + (add_url ? ('&' + add_url) : '');
+        this.set_busy(true);
+        this.location_href($.extend({}, {
+            _action:'plugin.manageprocmail-vacation-editform',
+            _unlock:lock,
+            _framed:1
+        }, id && {
+            _fid: id
+        }), win);
     }
 };
+
+rcube_webmail.prototype.update_vacation_row = function(response, oldkey)
+{
+    var list = this.vacations_list;
+    var col = create_activity_circle(response.enabled) + '&nbsp;' + $('<span>').text(response.subject)[0].outerHTML;
+
+    if (list && oldkey) {
+        list.update_row(oldkey, [ col ], response.id, true);
+    }
+    else if (list) {
+        list.insert_row({
+            id:'rcmrow'+response.id,
+            cols:[ { className:'name', innerHTML: col } ] });
+        list.select(response.id);
+    }
+};
+
+function create_activity_circle(enabled) {
+    return $('<span>').css({
+        'height': '1em',
+        'width': '1em',
+        'backgroundColor': enabled ? '#27ae60' : '#e74c3c',
+        'borderRadius': '50%',
+        'display': 'inline-block'
+    })[0].outerHTML;
+}

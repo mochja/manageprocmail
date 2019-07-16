@@ -848,9 +848,6 @@ class manageprocmail extends rcube_plugin
         $this->rc->output->add_gui_object('vacationslist', $attrib['id']);
         $this->rc->output->include_script('list.js');
 
-        \Tracy\Debugger::$maxLength = 999999;
-        Tracy\Debugger::barDump($out);
-
         return $out;
     }
 
@@ -928,11 +925,12 @@ SQL;
                 $form->addError('cannot insert vacation');
                 $this->rc->output->show_message('cannot store vacation', 'error');
             } else {
-                $this->rc->output->show_message('saved', 'confirmation');
-                $this->rc->output->redirect([
-                    'action' => $this->rc->action,
-                    '_fid' => $res ? ($id ?: $newId) : 0,
-                ]);
+                $this->rc->output->show_message('successfullysaved', 'confirmation');
+                $this->rc->output->command('parent.update_vacation_row', [
+                    'subject' => $values['subject'],
+                    'enabled' => $values['enabled'] ?: 0,
+                    'id' => $newId ?: $id
+                ], $id);
             }
         }
 
