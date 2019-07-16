@@ -137,7 +137,7 @@ rcube_webmail.prototype.manageprocmail_select = function (list) {
 
     if (id != null) {
         id = list.rows[id].uid;
-        this.load_manageprocmailframe('_fid=' + id);
+        this.load_manageprocmailframe(id);
     }
 
     var has_id = typeof (id) != 'undefined' && id != null;
@@ -145,14 +145,18 @@ rcube_webmail.prototype.manageprocmail_select = function (list) {
 };
 
 // load filter frame
-rcube_webmail.prototype.load_manageprocmailframe = function (add_url) {
-    if (this.env.contentframe && window.frames && window.frames[this.env.contentframe]) {
+rcube_webmail.prototype.load_manageprocmailframe = function (id) {
+    var win;
+    if ((win = this.get_frame_window(this.env.contentframe))) {
         var lock = this.set_busy(true, 'loading');
 
-        target = window.frames[this.env.contentframe];
-        target.location.href = this.env.comm_path
-            + '&_action=plugin.manageprocmail-editform&_framed=1&_unlock=' + lock
-            + (add_url ? ('&' + add_url) : '');
+        this.location_href($.extend({}, {
+            _action:'plugin.manageprocmail-editform',
+            _unlock:lock,
+            _framed:1
+        }, id && {
+            _fid: id
+        }), win);
     }
 };
 
