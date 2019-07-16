@@ -639,7 +639,7 @@ class manageprocmail extends rcube_plugin
                 'message_action_move_to_folder' => $filter['move_to'],
                 'message_action_copy_to_folder' => $filter['copy_to'],
 
-                'message_action_mark_as_read' => $filter['mark_as_read'] !== null,
+                'message_action_mark_as_read' => !!$filter['mark_as_read'],
 
                 'filter_active' => $filter['enabled'],
             ]);
