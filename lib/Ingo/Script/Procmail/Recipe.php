@@ -86,6 +86,14 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
             $this->_params['ls'] = $this->_params['transport'][Ingo::RULE_ALL]['params']['ls'];
         }
         switch ($params['action']) {
+        case 'Ingo_Rule_Noop':
+            $this->_action[] = '{ }';
+            break;
+        case 'Ingo_Rule_Mark_As_Read':
+            $this->_action[] = '| formail -i "Status: RO"';
+            $this->addFlag('W');
+            $this->addFlag('f');
+            break;
         case 'Ingo_Rule_User_Move':
             $this->_action[] = $delivery
                 .= $this->procmailPath($params['action-value']);
@@ -254,17 +262,9 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                 }
             }
 
-            /* In case of mail loop or bounce, store a copy locally.  Note
-             * that if we forward to more than one address, only a mail loop
-             * on the last address will cause a local copy to be saved.  TODO:
-             * The next two lines are redundant (and create an extra copy of
-             * the message) if "Keep a copy of messages in this account" is
-             * checked. */
-            $this->_action[] = '  :0 E'
+            $this->_action[] = '  :0'
                 . (isset($this->_params['delivery_agent']) ? 'w' : '');
             $this->_action[] = '  ' . $delivery . '$DEFAULT';
-            $this->_action[] = '  :0 ';
-            $this->_action[] = '  /dev/null';
             $this->_action[] = '}';
             break;
 
@@ -292,7 +292,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
      */
     public function addCondition($condition = array())
     {
-        $flag = !empty($condition['case']) ? 'D' : '';
+//        $flag = !empty($condition['case']) ? 'D' : '';
         $match = isset($condition['match']) ? $condition['match'] : null;
         $string = '';
         $prefix = '';
@@ -303,7 +303,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
             break;
 
         case 'Body':
-            $flag .= 'B';
+            $string .= 'B ?? ';
             break;
 
         default:
@@ -357,8 +357,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
             break;
         }
 
-        $this->_conditions[] = array('condition' => ($reverseCondition ? '* !' : '* ') . $string,
-                                     'flags' => $flag);
+        $this->_conditions[] = array('condition' => ($reverseCondition ? '* !' : '* ') . $string);
     }
 
     /**
@@ -379,19 +378,9 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
         // Set the global flags for the whole rule, each condition
         // will add its own (such as Body or Case Sensitive)
         $global = $this->_flags;
-        if (isset($this->_conditions[0])) {
-            $global .= $this->_conditions[0]['flags'];
-        }
         $text[] = ':0 ' . $global . (isset($this->_params['delivery_agent']) ? 'w' : '');
         foreach ($this->_conditions as $condition) {
-            if ($nest > 0) {
-                $text[] = str_repeat('  ', $nest - 1) . '{';
-                $text[] = str_repeat('  ', $nest) . ':0 ' . $condition['flags'];
-                $text[] = str_repeat('  ', $nest) . $condition['condition'];
-            } else {
-                $text[] = $condition['condition'];
-            }
-            $nest++;
+            $text[] = $condition['condition'];
         }
 
         if (--$nest > 0) {
@@ -445,5 +434,10 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
             }
         }
         return str_replace(' ', '\ ', escapeshellcmd($folder));
+    }
+
+    function isDisabled()
+    {
+        return $this->_disable;
     }
 }
