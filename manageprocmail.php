@@ -945,6 +945,16 @@ SQL;
             $this->include_script('manageprocmail.js');
         }
 
+        if (!$this->check_script_presence()) {
+
+            $this->rc->output->add_handlers([
+                'link' => [$this, 'link_handler'],
+            ]);
+
+            $this->rc->output->send('manageprocmail.scriptfail');
+            return;
+        }
+
         $this->rc->output->add_handlers(array(
             'vacationslist' => array($this, 'vacation_list'),
             'vacationframe' => array($this, 'vacation_frame'),
