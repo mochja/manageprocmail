@@ -173,6 +173,22 @@ rcube_webmail.prototype.load_manageprocmailvacationframe = function (id) {
     }
 };
 
+rcube_webmail.prototype.update_filter_row = function(response, oldkey)
+{
+    var list = this.filters_list;
+    var col = create_activity_circle(response.enabled) + '&nbsp;' + $('<span>').text(response.name)[0].outerHTML;
+
+    if (list && oldkey) {
+        list.update_row(oldkey, [ col ], response.id, true);
+    }
+    else if (list) {
+        list.insert_row({
+            id:'rcmrow'+response.id,
+            cols:[ { className:'name', innerHTML: col } ] });
+        list.select(response.id);
+    }
+};
+
 rcube_webmail.prototype.update_vacation_row = function(response, oldkey)
 {
     var list = this.vacations_list;

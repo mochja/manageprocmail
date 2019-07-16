@@ -495,8 +495,6 @@ class manageprocmail extends rcube_plugin
             $rules[] = $rule;
         }
 
-        \Tracy\Debugger::barDump($rules);
-
         if ($fid && !$filter) {
             rcube::raise_error([
                 'code' => 403,
@@ -607,6 +605,7 @@ class manageprocmail extends rcube_plugin
 
             if (!$fid) {
                 $fid = $db->insert_id($this->ID . '_filters');
+                $newEntry = true;
             }
 
             $res = $db->query('DELETE FROM ' . $this->ID . '_rules WHERE filter_id = ?', $fid);
@@ -627,9 +626,6 @@ class manageprocmail extends rcube_plugin
                 }
             }
 
-            \Tracy\Debugger::barDump($values);
-            \Tracy\Debugger::barDump($res);
-
             try {
                 $currentScript = $this->transport->getScript();
                 $currentScript['script'] = $this->generate_script($currentScript);
@@ -642,11 +638,12 @@ class manageprocmail extends rcube_plugin
             }
 
             if ($res) {
-                $this->rc->output->redirect([
-                    'action' => $this->rc->action,
-                    '_fid' => $fid,
-                ]);
-                return;
+                $this->rc->output->show_message('successfullysaved', 'confirmation');
+                $this->rc->output->command('parent.update_filter_row', [
+                    'name' => $values['filter_name'],
+                    'enabled' => $values['filter_active'] ?: 0,
+                    'id' => $fid
+                ], isset($newEntry) ? false : $fid);
             }
         }
 
