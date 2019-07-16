@@ -55,9 +55,9 @@ class Ingo_Transport_Flysystem extends Ingo_Transport_Base
 
         try {
             if (!empty($script['script'])) {
-                $this->_vfs->put($this->_params['root'] .$script['name'], $script['script']);
-            } elseif ($this->_vfs->has($this->_params['root'] . $script['name'])) {
-                $this->_vfs->delete($this->_params['root'] . $script['name']);
+                $this->_vfs->put($this->_params['vfs_path'] .$script['name'], $script['script']);
+            } elseif ($this->_vfs->has($this->_params['vfs_path'] . $script['name'])) {
+                $this->_vfs->delete($this->_params['vfs_path'] . $script['name']);
             }
         } catch (Flysystem\Exception $e) {
             throw new Ingo_Exception($e);
@@ -75,13 +75,13 @@ class Ingo_Transport_Flysystem extends Ingo_Transport_Base
     {
         $this->_connect();
 
-        if (!$this->_vfs->has($this->_params['root'] . $this->_params['filename'])) {
+        if (!$this->_vfs->has($this->_params['vfs_path'] . $this->_params['filename'])) {
             return false;
         }
 
         return array(
             'name' => $this->_params['filename'],
-            'script' => $this->_vfs->read($this->_params['root'] . $this->_params['filename'])
+            'script' => $this->_vfs->read($this->_params['vfs_path'] . $this->_params['filename'])
         );
     }
 
