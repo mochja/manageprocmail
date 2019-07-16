@@ -59,4 +59,4 @@ $labels['vacations'] = 'Vacations';
 
 $messages = [];
 $messages['removed'] = 'removed';
-
+$messages['successfullysaved'] = 'Successfully saved.';

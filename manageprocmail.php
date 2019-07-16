@@ -153,7 +153,7 @@ class manageprocmail extends rcube_plugin
             'body::body' => 'body',
         ]));
 
-        $ruleContainer->addSelect('rule_op', 'Operation', [
+        $op = $ruleContainer->addSelect('rule_op', 'Operation', [
             'contains' => $this->gettext('filtercontains'),
             'notcontains' => $this->gettext('filternotcontains'),
             'is' => $this->gettext('filteris'),
@@ -164,7 +164,15 @@ class manageprocmail extends rcube_plugin
             'notregex' => $this->gettext('filternotregex'),
         ]);
 
-        $ruleContainer->addText('rule_op_against', 'Rule operation against');
+        $ruleContainer->addText('rule_op_against', 'Rule operation against')
+            ->addConditionOn($op, \Nette\Forms\Form::EQUAL, 'regex')
+                ->addRule(function(\Nette\Forms\IControl $control) {
+                    return preg_match('~' . $control->getValue() . '~', null) !== false;
+                }, 'invalid regex')
+            ->addConditionOn($op, \Nette\Forms\Form::EQUAL, 'notregex')
+                ->addRule(function(\Nette\Forms\IControl $control) {
+                    return preg_match('~' . $control->getValue() . '~', null) !== false;
+                }, 'invalid regex');
 
         $ruleContainer->addButton('remove', 'X')
             ->getControlPrototype()
@@ -540,8 +548,6 @@ class manageprocmail extends rcube_plugin
             foreach ($toRemove as $ruleContainer) {
                 $form['rule']->removeComponent($ruleContainer);
             }
-
-            \Tracy\Debugger::barDump($values);
 
             $form['message_action_move_to']->setDisabled((bool)$values['message_action_copy_to']);
             $form['message_action_copy_to']->setDisabled((bool)$values['message_action_move_to']);
