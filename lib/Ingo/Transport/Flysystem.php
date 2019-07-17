@@ -102,6 +102,10 @@ class Ingo_Transport_Flysystem extends Ingo_Transport_Base
                 $this->_params['root']);
         }
 
+        if (!empty($this->_params['host'])) {
+            $this->_params['host'] = rcube_utils::parse_host($this->_params['host']);
+        }
+
         if (!empty($this->_vfs)) {
             return;
         }
