@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
- \Tracy\Debugger::enable(false);
+// \Tracy\Debugger::enable(false);
 
 function cToIngo($field)
 {
