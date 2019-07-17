@@ -1,4 +1,15 @@
 {form $vacationForm, class => 'propform boxcontent'}
+	<ul class="errors" n:if="$form->hasErrors()">
+		<li n:foreach="$form->errors as $error">{if $error === "SCRIPTERR"}
+				<p>Invalid content of stored script.</p>
+
+				<a href="{link plugin.manageprocmail-replace-script, _vid => $id}">replace script</a>
+				<a href="{link plugin.manageprocmail-prepend-script, _vid => $id}">prepend script</a>
+				<a href="{link plugin.manageprocmail-append-script, _vid => $id}">append script</a>
+				<a href="{link plugin.manageprocmail-vacation-editform, _fid => $id}">try again</a>
+				{else}{$error}{/}</li>
+	</ul>
+
 	<fieldset>
 		<table class="propform">
 			<tr>

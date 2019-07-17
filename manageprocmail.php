@@ -1,6 +1,8 @@
 <?php
 
-// \Tracy\Debugger::enable(false);
+require_once __DIR__ . '/vendor/autoload.php';
+
+ \Tracy\Debugger::enable(false);
 
 function cToIngo($field)
 {
@@ -31,6 +33,35 @@ function typeToIngo($type)
     ];
 
     return $map[$type];
+}
+
+class Macros extends Latte\Macros\MacroSet
+{
+
+    public static function install(Latte\Compiler $compiler)
+    {
+        $set = new static($compiler);
+
+        $set->addMacro('link', array($set, 'link'));
+
+        return $set;
+    }
+
+
+    public function link(Latte\MacroNode $node, Latte\PhpWriter $writer)
+    {
+        return $writer->write('echo \Macros::renderLink(%node.word, %node.array?)');
+    }
+
+    public static function renderLink($action, $opts = []) {
+        $rcube = rcube::get_instance();
+        return $rcube->url(array_merge(
+            [
+                'action' => $action,
+            ],
+            $opts
+        ));
+    }
 }
 
 class manageprocmail extends rcube_plugin
@@ -67,6 +98,7 @@ class manageprocmail extends rcube_plugin
         $this->latte->setTempDirectory($this->rc->config->get('temp_dir', sys_get_temp_dir()));
         $this->latte->setLoader(new \Latte\Loaders\FileLoader(__DIR__ . DIRECTORY_SEPARATOR . $this->local_skin_path() . DIRECTORY_SEPARATOR . 'templates'));
         Nette\Bridges\FormsLatte\FormMacros::install($this->latte->getCompiler());
+        Macros::install($this->latte->getCompiler());
 
         $this->register_action('plugin.manageprocmail', array($this, 'manageprocmail_actions'));
         $this->register_action('plugin.manageprocmail-editform', array($this, 'manageprocmail_editform'));
@@ -627,6 +659,10 @@ class manageprocmail extends rcube_plugin
                 && !$values['message_action_mark_as_read']) {
                 $form->addError('Please select atleast one action');
             }
+
+            if (!$this->check_script_presence()) {
+                $form->addError('Invalid content of stored script, please refresh the page.');
+            }
         } elseif ($filter) {
             $form->setDefaults([
                 'filter_name' => $filter['name'],
@@ -743,7 +779,6 @@ class manageprocmail extends rcube_plugin
         // (hash:8e17e22990ff2191e752a2fe1baa66b9) #####
         if (preg_match_all('/\(hash:([a-f0-9]{32})\) #####$/m', $script, $matches, PREG_OFFSET_CAPTURE) !== false) {
             if (count($matches[1]) > 1) {
-                // TODO: Handle error
                 return false;
             }
 
@@ -751,13 +786,11 @@ class manageprocmail extends rcube_plugin
             $contentStart = strpos($script, PHP_EOL, $matches[1][0][1]);
             $contentEnd = strpos($script, PHP_EOL . '# == END OF GENERATED CONTENT', $contentStart);
             if ($contentStart === false || $contentEnd === false) {
-                // TODO: Handle error
                 return false;
             }
             $content = trim(substr($script, $contentStart, $contentEnd - $contentStart));
 
             if ($hash !== md5($content)) {
-                // TODO: handle error
                 return false;
             }
         }
@@ -777,6 +810,9 @@ class manageprocmail extends rcube_plugin
 
     function manageprocmail_replace_script()
     {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+        $vid = rcube_utils::get_input_value('_vid', rcube_utils::INPUT_GET);
+
         try {
             $currentScript = $this->transport->getScript();
             $currentScript['script'] = $this->generate_script([
@@ -789,14 +825,27 @@ class manageprocmail extends rcube_plugin
             return;
         }
 
-        $this->rc->output->redirect([
+        $redirect = [
             'action' => 'plugin.manageprocmail',
-        ]);
+        ];
+
+        if ($vid) {
+            $redirect['action'] = 'plugin.manageprocmail-vacation-editform';
+            $redirect['_fid'] = $vid;
+        } else if ($fid) {
+            $redirect['action'] = 'plugin.manageprocmail-editform';
+            $redirect['_fid'] = $fid;
+        }
+
+        $this->rc->output->redirect($redirect);
     }
 
 
     function manageprocmail_prepend_script()
     {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+        $vid = rcube_utils::get_input_value('_vid', rcube_utils::INPUT_GET);
+
         try {
             $currentScript = $this->transport->getScript();
             $currentScript['script'] = $currentScript['script'] . PHP_EOL . $this->generate_script();
@@ -807,14 +856,24 @@ class manageprocmail extends rcube_plugin
             return;
         }
 
-        $this->rc->output->redirect([
-            'action' => 'plugin.manageprocmail',
-        ]);
+
+        if ($vid) {
+            $redirect['action'] = 'plugin.manageprocmail-vacation-editform';
+            $redirect['_fid'] = $vid;
+        } else if ($fid) {
+            $redirect['action'] = 'plugin.manageprocmail-editform';
+            $redirect['_fid'] = $fid;
+        }
+
+        $this->rc->output->redirect($redirect);
     }
 
 
     function manageprocmail_append_script()
     {
+        $fid = rcube_utils::get_input_value('_fid', rcube_utils::INPUT_GET);
+        $vid = rcube_utils::get_input_value('_vid', rcube_utils::INPUT_GET);
+
         try {
             $currentScript = $this->transport->getScript();
             $currentScript['script'] = $this->generate_script() . $currentScript['script'];
@@ -825,9 +884,16 @@ class manageprocmail extends rcube_plugin
             return;
         }
 
-        $this->rc->output->redirect([
-            'action' => 'plugin.manageprocmail',
-        ]);
+
+        if ($vid) {
+            $redirect['action'] = 'plugin.manageprocmail-vacation-editform';
+            $redirect['_fid'] = $vid;
+        } else if ($fid) {
+            $redirect['action'] = 'plugin.manageprocmail-editform';
+            $redirect['_fid'] = $fid;
+        }
+
+        $this->rc->output->redirect($redirect);
     }
 
 
@@ -957,6 +1023,10 @@ class manageprocmail extends rcube_plugin
                 return;
             }
             $form->setDefaults($vacation ?: []);
+        } else {
+            if (!$this->check_script_presence()) {
+                $form->addError('SCRIPTERR');
+            }
         }
 
         if ($form->isSuccess()) {
@@ -1040,6 +1110,7 @@ SQL;
         $this->view = 'vacation.latte';
         $this->params = [
             'vacationForm' => $this->vacationform($fid),
+            'id' => $fid,
         ];
 
         $this->rc->output->send('manageprocmail.vacationform');
