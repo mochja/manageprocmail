@@ -114,20 +114,20 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                     . ' +%s`';
                 if ($days) {
                     $this->_action[] =
-                        '    FILEDATE=`test -f ${VACATION_DIR:-.}/\'.vacation.'
+                        '    FILEDATE=`test -f ${VACATION_DIR:-.}/\'.vacation-'. $params['action-value']['id'] .'.'
                         . $address . '\' && ( '
                         . $this->_params['stat']
-                        . ' -c %Y ${VACATION_DIR:-.}/\'.vacation.'
+                        . ' -c %Y ${VACATION_DIR:-.}/\'.vacation-'. $params['action-value']['id'] .'.'
                         . $address . '\' 2>/dev/null || '
                         . $this->_params['stat']
-                        . ' -f %m ${VACATION_DIR:-.}/\'.vacation.'
+                        . ' -f %m ${VACATION_DIR:-.}/\'.vacation-'. $params['action-value']['id'] .'.'
                         . $address . '\' 2>/dev/null ) | '
                         . 'awk \'{ print $1 + (' . $days * 86400 . ') }\'`';
                     $this->_action[] =
-                        '    DUMMY=`test -f ${VACATION_DIR:-.}/\'.vacation.'
+                        '    DUMMY=`test -f ${VACATION_DIR:-.}/\'.vacation-'. $params['action-value']['id'] .'.'
                         . $address . '\' && '
                         . 'test $FILEDATE -le $DATE && '
-                        . 'rm ${VACATION_DIR:-.}/\'.vacation.' . $address . '\'`';
+                        . 'rm ${VACATION_DIR:-.}/\'.vacation-'. $params['action-value']['id'] .'.' . $address . '\'`';
                 }
                 if (!empty($params['action-value']['start'])) {
                     $this->_action[] = '    START='
@@ -142,7 +142,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                 $this->_action[] = '    SUBJECT=| formail -xSubject:';
                 $this->_action[] = '';
                 $this->_action[] =
-                    '    :0 Wc: ${VACATION_DIR:-.}/vacation.lock';
+                    '    :0 Wc: ${VACATION_DIR:-.}/vacation-'. $params['action-value']['id'] .'.lock';
                 if (!empty($params['action-value']['start']) ||
                     !empty($params['action-value']['end'])) {
                     $test = '    * ?';
@@ -174,7 +174,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                     $this->_action[] = '      * !^FROM_DAEMON';
                 }
                 $this->_action[] =
-                    '      | formail -rD 8192 ${VACATION_DIR:-.}/.vacation.'
+                    '      | formail -rD 8192 ${VACATION_DIR:-.}/.vacation-'. $params['action-value']['id'] .'.'
                     . $address;
                 $this->_action[] = '      :0 eh';
                 $this->_action[] = '      | (formail -rI"Precedence: junk" \\';

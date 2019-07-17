@@ -496,6 +496,7 @@ class manageprocmail extends rcube_plugin
                         'excludes' => explode(PHP_EOL, $vacation['excludes']),
                         'start' => strtotime($vacation['from']),
                         'end' => strtotime($vacation['to'] . ' 23:59:59'),
+                        'id' => $vacation['id'],
                     ),
                     'disable' => !$vacation['enabled']
                 ),
