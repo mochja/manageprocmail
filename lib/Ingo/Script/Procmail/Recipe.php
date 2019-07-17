@@ -42,6 +42,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
     /**
      */
     protected $_params = array(
+        'stat' => 'stat',
         'date' => 'date',
         'echo' => 'echo',
         'ls'   => 'ls'
@@ -114,11 +115,14 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                 if ($days) {
                     $this->_action[] =
                         '    FILEDATE=`test -f ${VACATION_DIR:-.}/\'.vacation.'
-                        . $address . '\' && '
-                        . $this->_params['ls']
-                        . ' -lcn --time-style=+%s ${VACATION_DIR:-.}/\'.vacation.'
-                        . $address . '\' | '
-                        . 'awk \'{ print $6 + (' . $days * 86400 . ') }\'`';
+                        . $address . '\' && ( '
+                        . $this->_params['stat']
+                        . ' -c %Y ${VACATION_DIR:-.}/\'.vacation.'
+                        . $address . '\' 2>/dev/null || '
+                        . $this->_params['stat']
+                        . ' -f %m ${VACATION_DIR:-.}/\'.vacation.'
+                        . $address . '\' 2>/dev/null ) | '
+                        . 'awk \'{ print $1 + (' . $days * 86400 . ') }\'`';
                     $this->_action[] =
                         '    DUMMY=`test -f ${VACATION_DIR:-.}/\'.vacation.'
                         . $address . '\' && '
