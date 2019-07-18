@@ -133,7 +133,6 @@ class manageprocmail extends rcube_plugin
 
         // Trash folder
 //        \Tracy\Debugger::barDump($this->rc->config->get('trash_mbox'));
-
     }
 
 
@@ -198,6 +197,7 @@ class manageprocmail extends rcube_plugin
             return preg_match('~' . str_replace('~', '\~', $control->getValue()) . '~', null) !== false;
         };
         $ruleContainer->addText('rule_op_against', 'Rule operation against')
+            ->setRequired(true)
             ->addConditionOn($op, \Nette\Forms\Form::EQUAL, 'regex')
                 ->addRule($regexValidator, 'invalid regex')
             ->addConditionOn($op, \Nette\Forms\Form::EQUAL, 'notregex')
@@ -241,16 +241,13 @@ class manageprocmail extends rcube_plugin
         $forwardTo = $form->addCheckbox('message_action_forward_to', 'Forward To');
         $moveTo = $form->addCheckbox('message_action_move_to', 'Move To');
         $copyTo = $form->addCheckbox('message_action_copy_to', 'Copy To');
-        $form->addCheckbox('message_action_mark_as_read', 'Mark as read');
+        $markAsRead = $form->addCheckbox('message_action_mark_as_read', 'Mark as read');
+        $discard = $form->addCheckbox('message_action_discard', 'Discard');
 
         /** @var rcube_imap $storage */
         $storage = $this->rc->get_storage();
 
-        $folders = array_filter($storage->list_folders(), function($folder) use ($storage) {
-            \Tracy\Debugger::barDump($storage->folder_data($folder), $folder);
-
-            return true;
-        });
+        $folders = $storage->list_folders('', '*', 'mail');
         $folders = array_combine($folders, $folders);
 
         $copyToFolders = $form->addSelect('message_action_copy_to_folder', 'Folder', $folders);
@@ -288,7 +285,8 @@ class manageprocmail extends rcube_plugin
         $this->rc->output->add_gui_object('copy_to_folder_list', $copyToFolders->getHtmlId());
         $this->rc->output->add_gui_object('move_to_folder_list', $moveToFolders->getHtmlId());
         $this->rc->output->add_gui_object('forward_to_checkbox', $forwardTo->getHtmlId());
-        $this->rc->output->add_gui_object('forward_to_list', $forwardToList->getHtmlId());
+        $this->rc->output->add_gui_object('mark_as_read_checkbox', $markAsRead->getHtmlId());
+        $this->rc->output->add_gui_object('discard_checkbox', $discard->getHtmlId());
 
         $form->addCheckbox('filter_active', $this->gettext('manageprocmail.active'))
             ->setDefaultValue(true);
@@ -346,11 +344,10 @@ class manageprocmail extends rcube_plugin
             $currentScript['script'] = '';
         }
         $script = [];
-
         $filters = [];
 
         $db = $this->rc->get_dbh();
-        $res = $db->query(sprintf('SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s FROM %s WHERE user_id = ?',
+        $res = $db->query(sprintf('SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s FROM %s WHERE user_id = ?',
             'id',
             $db->quote_identifier('name'),
             $db->quote_identifier('match'),
@@ -358,6 +355,7 @@ class manageprocmail extends rcube_plugin
             'copy_to',
             'move_to',
             'mark_as_read',
+            'discard',
             'enabled',
             'created',
             $db->table_name($this->ID . '_filters')), $this->rc->get_user_id());
@@ -378,19 +376,21 @@ class manageprocmail extends rcube_plugin
                 $rules[] = $rule;
             }
 
-            if ($filter['forward_to']) {
-                $ruleScript[] = $recipe = new Ingo_Script_Procmail_Recipe(
+            // copy can be combined with mark as read action and forward to action
+            // move to can be combined with mark as read
+            // mark as read can be combined with copy & move to actions & forward to action
+            //   (because copy can be used with forward to, and mark as read can be used with copy)
+
+            $markAsReadRecipe = null;
+            // mark as read should be only available for copy & move & forward actions
+            if ($filter['mark_as_read']) {
+                $ruleScript[] = $markAsReadRecipe = new Ingo_Script_Procmail_Recipe(
                     array(
-                        'action' => 'Ingo_Rule_System_Forward',
-                        'action-value' => explode(PHP_EOL, $filter['forward_to']),
+                        'action' => 'Ingo_Rule_Mark_As_Read',
                         'disable' => !$filter['enabled']
                     ),
                     []
                 );
-
-                if ($filter['copy_to']) {
-                    $recipe->addFlag('c');
-                }
             }
 
             if ($filter['move_to'] || $filter['copy_to']) {
@@ -402,45 +402,52 @@ class manageprocmail extends rcube_plugin
                     ),
                     []
                 );
+
+                if ($filter['copy_to']) {
+                    $recipe->addFlag('c');
+                }
+                if ($markAsReadRecipe) {
+                    $recipe->addFlag('A');
+                }
             }
 
-            if (!$filter['move_to'] && !$filter['copy_to'] && !$filter['forward_to']) {
+            if ($filter['forward_to']) {
+                $ruleScript[] = $recipe = new Ingo_Script_Procmail_Recipe(
+                    array(
+                        'action' => 'Ingo_Rule_System_Forward',
+                        'action-value' => explode(PHP_EOL, $filter['forward_to']),
+                        'disable' => !$filter['enabled']
+                    ),
+                    []
+                );
+
+                if ($markAsReadRecipe) {
+                    $recipe->addFlag('A');
+                }
+            }
+
+            if ($filter['discard']) {
                 $ruleScript[] = $recipe = new Ingo_Script_Procmail_Recipe(
                     array(
                         'action' => 'Ingo_Rule_User_Move',
+                        'action-value' => '/dev/null',
                         'disable' => !$filter['enabled']
                     ),
                     []
                 );
             }
 
-            $initialScript = $ruleScript;
-
             switch ($filter['match']) {
                 case '1':
-                    foreach ($initialScript as $recipe) {
-                        $markAsReadRecipe = null;
-                        if ($filter['mark_as_read']) {
-                            $markAsReadRecipe = new Ingo_Script_Procmail_Recipe(
-                                array(
-                                    'action' => 'Ingo_Rule_Mark_As_Read',
-                                    'disable' => !$filter['enabled']
-                                ),
-                                []
-                            );
+                    foreach ($ruleScript as $recipe) {
 
-                            $recipe->addFlag('A');
-                        }
-
-                        foreach ($rules as $condition) {
-                            if ($markAsReadRecipe) {
-                                $markAsReadRecipe->addCondition([
-                                    'case' => 0,
-                                    'field' => cToIngo($condition['type']),
-                                    'match' => typeToIngo($condition['op']),
-                                    'value' => $condition['against'],
-                                ]);
-                            } else {
+                        // attach conditions only for mark as read action, rest is linked to that
+                        // Mark as Read - cond a, cond b
+                        // Copy to (c) Flags: A
+                        // Forward to  Flags: A
+                        // Always add A flags when mark as read is used (already done above)
+                        if (($recipe === $markAsReadRecipe) || !$markAsReadRecipe) {
+                            foreach ($rules as $condition) {
                                 $recipe->addCondition([
                                     'case' => 0,
                                     'field' => cToIngo($condition['type']),
@@ -450,28 +457,25 @@ class manageprocmail extends rcube_plugin
                             }
                         }
 
-                        if ($markAsReadRecipe) {
-                            $script[] = $markAsReadRecipe;
-                        }
-
                         $script[] = $recipe;
                     }
                     break;
                 case '2':
-                    // or using demorgan law
+                    // OR using demorgan law A || B - !(!a && !b)
+                    // prepend a recipe with a noop operation for a test in next step (added E flag to original recipe)
+                    // attach all the conditions on first recipe, but nor the action not -> regular | regular -> not
                     $newRecipes = [];
 
-                    foreach ($initialScript as $recipe) {
-                        $markAsReadRecipe = null;
-                        if ($filter['mark_as_read']) {
-                            $markAsReadRecipe = new Ingo_Script_Procmail_Recipe(
-                                array(
-                                    'action' => 'Ingo_Rule_Mark_As_Read',
-                                    'disable' => !$filter['enabled']
-                                ),
-                                []
-                            );
-                        }
+                    foreach ($ruleScript as $recipe) {
+
+                        // attach conditions only for mark as read action, rest is linked to that
+                        // Noop
+                        // Mark as Read Flags: E
+                        // Noop
+                        // Copy to (c) Flags: A -> E
+                        // Noop
+                        // Forward to  Flags: A -> E
+                        // Replace A flag with E flag
 
                         $tmpRecipe = new Ingo_Script_Procmail_Recipe(
                             array(
@@ -481,6 +485,7 @@ class manageprocmail extends rcube_plugin
                             []
                         );
 
+                        // cannot optimalize with A as in AND, E flag cannot be chained
                         foreach ($rules as $condition) {
                             $op = $condition['op'];
 
@@ -493,21 +498,18 @@ class manageprocmail extends rcube_plugin
                             ]);
                         }
 
+                        $recipe->removeFlag('A');
+                        $recipe->addFlag('E');
+
                         $newRecipes[] = $tmpRecipe;
-
-                        if ($markAsReadRecipe) {
-                            $newRecipes[] = $markAsReadRecipe;
-                            $markAsReadRecipe->addFlag('E');
-                            $recipe->addFlag('A');
-                        } else {
-                            $recipe->addFlag('E');
-                        }
-
                         $newRecipes[] = $recipe;
                     }
 
-                    \Tracy\Debugger::barDump($newRecipes);
                     $script = array_merge($script, $newRecipes);
+                default:
+                    foreach ($ruleScript as $recipe) {
+                        $script[] = $recipe;
+                    }
             }
         }
 
@@ -685,10 +687,10 @@ class manageprocmail extends rcube_plugin
         if ($this->form->isSuccess()) {
             $values = $this->form->getValues(true);
 
-            $sql = 'UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE user_id = ? AND id = ?';
+            $sql = 'UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE user_id = ? AND id = ?';
 
             if (!$fid) {
-                $sql = 'INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, user_id) VALUES (?,?,?,?,?,?,?,?)';
+                $sql = 'INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, user_id) VALUES (?,?,?,?,?,?,?,?,?)';
             }
 
             $res = $db->query(
@@ -700,7 +702,8 @@ class manageprocmail extends rcube_plugin
                     $db->quote_identifier('move_to'),
                     $db->quote_identifier('copy_to'),
                     $db->quote_identifier('forward_to'),
-                    $db->quote_identifier('mark_as_read')
+                    $db->quote_identifier('mark_as_read'),
+                    $db->quote_identifier('discard')
                 ),
                 $values['filter_name'],
                 $values['filter_op'],
@@ -709,6 +712,7 @@ class manageprocmail extends rcube_plugin
                 $values['message_action_copy_to'] ? $values['message_action_copy_to_folder'] : null,
                 $values['message_action_forward_to'] ? $values['forward_to'] : null,
                 $values['message_action_mark_as_read'] ?: 0,
+                $values['message_action_discard'] ?: 0,
                 $this->rc->get_user_id(), $fid
             );
 

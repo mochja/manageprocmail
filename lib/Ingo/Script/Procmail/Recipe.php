@@ -37,7 +37,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
 
     /**
      */
-    protected $_flags = '';
+    protected $_flags = [];
 
     /**
      */
@@ -51,6 +51,9 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
     /**
      */
     protected $_valid = true;
+
+
+    protected $_level = 0;
 
     /**
      * Constructs a new procmail recipe.
@@ -93,7 +96,6 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
         case 'Ingo_Rule_Mark_As_Read':
             $this->_action[] = '| formail -i "Status: RO"';
             $this->addFlag('W');
-            $this->addFlag('f');
             break;
         case 'Ingo_Rule_User_Move':
             $this->_action[] = $delivery
@@ -263,9 +265,17 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                 }
             }
 
-            $this->_action[] = '  :0'
+            /* In case of mail loop or bounce, store a copy locally.  Note
+             * that if we forward to more than one address, only a mail loop
+             * on the last address will cause a local copy to be saved.  TODO:
+             * The next two lines are redundant (and create an extra copy of
+             * the message) if "Keep a copy of messages in this account" is
+             * checked. */
+            $this->_action[] = '  :0 E'
                 . (isset($this->_params['delivery_agent']) ? 'w' : '');
             $this->_action[] = '  ' . $delivery . '$DEFAULT';
+            $this->_action[] = '  :0 ';
+            $this->_action[] = '  /dev/null';
             $this->_action[] = '}';
             break;
 
@@ -282,7 +292,12 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
      */
     public function addFlag($flag)
     {
-        $this->_flags .= $flag;
+        $this->_flags[] = $flag;
+    }
+
+    public function removeFlag($flag)
+    {
+        $this->_flags = array_diff($this->_flags, [$flag]);
     }
 
     /**
@@ -366,7 +381,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
      *
      * @return string  Procmail code to represent the recipe.
      */
-    public function generate()
+    public function generate($opts = [])
     {
         $nest = 0;
         $prefix = '';
@@ -378,7 +393,7 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
 
         // Set the global flags for the whole rule, each condition
         // will add its own (such as Body or Case Sensitive)
-        $global = $this->_flags;
+        $global = $this->getFlags();
         $text[] = ':0 ' . $global . (isset($this->_params['delivery_agent']) ? 'w' : '');
         foreach ($this->_conditions as $condition) {
             $text[] = $condition['condition'];
@@ -393,6 +408,12 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
 
         for ($i = $nest; $i > 0; $i--) {
             $text[] = str_repeat('  ', $i - 1) . '}';
+        }
+
+        if ($this->_level) {
+            $text = array_map(function ($line) use ($opts) {
+                return str_repeat('  ', $opts['level']) . $line;
+            }, $text);
         }
 
         if ($this->_disable) {
@@ -440,5 +461,26 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
     function isDisabled()
     {
         return $this->_disable;
+    }
+
+    /**
+     * @return int
+     */
+    public function getLevel()
+    {
+        return $this->_level;
+    }
+
+    /**
+     * @param int $level
+     */
+    public function setLevel($level)
+    {
+        $this->_level = $level;
+    }
+
+    public function getFlags()
+    {
+        return implode('', $this->_flags);
     }
 }
