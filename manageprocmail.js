@@ -25,13 +25,19 @@ if (window.rcmail) {
                     .init();
             }
 
+            var actionEls = [
+                $(rcmail.gui_objects.move_to_folder_checkbox),
+                $(rcmail.gui_objects.copy_to_folder_checkbox),
+
+            ];
+
             (function () {
                 if (rcmail.gui_objects.forward_to_checkbox) {
                     var $list = $(rcmail.gui_objects.forward_to_list).parent().parent();
 
-                    rcmail.gui_objects.forward_to_checkbox.onclick = function () {
-                        $list.toggle();
-                    };
+                    $(rcmail.gui_objects.forward_to_checkbox).change(function () {
+                        $list.toggle(this.checked);
+                    });
 
                     if (!rcmail.gui_objects.forward_to_checkbox.checked) {
                         $list.hide();
@@ -44,33 +50,86 @@ if (window.rcmail) {
             if (rcmail.gui_objects.move_to_folder_checkbox) {
                 var $moveTo = $(rcmail.gui_objects.move_to_folder_checkbox);
                 var $copyTo = $(rcmail.gui_objects.copy_to_folder_checkbox);
+                var $forwardTo = $(rcmail.gui_objects.forward_to_checkbox);
+                var $markAsRead =    $(rcmail.gui_objects.mark_as_read_checkbox);
+                var $discard =     $(rcmail.gui_objects.discard_checkbox);
+
+                var combination_table = [
+                    [$discard, []],
+                    [$copyTo, [$forwardTo, $markAsRead]],
+                    [$moveTo, [$markAsRead]],
+                    [$markAsRead, [$forwardTo, $copyTo, $moveTo]],
+                    [$forwardTo, [$markAsRead, $copyTo]]
+                ];
+
+                function diff(a, b) {
+                    return a.filter(function(i) {return b.indexOf(i) < 0;});
+                }
+
                 (function () {
-                    if (rcmail.gui_objects.move_to_folder_checkbox) {
-                        var $list = $(rcmail.gui_objects.move_to_folder_list);
+                    var allActions = [$moveTo, $copyTo, $forwardTo, $discard, $markAsRead];
+                    combination_table.forEach(function(row) {
+                        row[0].click(function(e) {
+                            var scopeActions = diff(allActions, [row[0]]);
+                            var toDisable = diff(scopeActions, row[1]);
+                            var disable = e.target.checked;
 
-                        rcmail.gui_objects.move_to_folder_checkbox.onclick = function () {
-                            $list.attr('disabled', !rcmail.gui_objects.move_to_folder_checkbox.checked);
-                            $copyTo.attr('disabled', rcmail.gui_objects.move_to_folder_checkbox.checked);
-                        };
+                            toDisable.forEach(function($el) {
+                                if (disable) {
+                                    $el.prop('checked', false);
+                                }
+                                $el.attr('disabled', e.target.checked);
+                                $el.trigger('change');
+                            });
 
-                        $list.attr('disabled', !rcmail.gui_objects.move_to_folder_checkbox.checked);
-                        $copyTo.attr('disabled', rcmail.gui_objects.move_to_folder_checkbox.checked);
-                    }
+                            diff(scopeActions, toDisable).forEach(function($el) {
+                                if (!disable) {
+                                    $el.prop('checked', false);
+                                }
+                                $el.attr('disabled', !e.target.checked);
+                                $el.trigger('change');
+                            });
+
+                            var hasChecked = allActions.find(function($el) {
+                                return $el.prop('checked');
+                            });
+                            if (!hasChecked) {
+                                allActions.forEach(function($el) {
+                                    $el.attr('disabled', false);
+                                    $el.trigger('change');
+                                })
+                            }
+                        });
+                    })
                 })();
-
-                (function () {
-                    if (rcmail.gui_objects.copy_to_folder_checkbox) {
-                        var $list = $(rcmail.gui_objects.copy_to_folder_list);
-
-                        rcmail.gui_objects.copy_to_folder_checkbox.onclick = function () {
-                            $list.attr('disabled', !rcmail.gui_objects.copy_to_folder_checkbox.checked);
-                            $moveTo.attr('disabled', rcmail.gui_objects.copy_to_folder_checkbox.checked);
-                        };
-
-                        $list.attr('disabled', !rcmail.gui_objects.copy_to_folder_checkbox.checked);
-                        $moveTo.attr('disabled', rcmail.gui_objects.copy_to_folder_checkbox.checked);
-                    }
-                })();
+                //
+                // (function () {
+                //     if (rcmail.gui_objects.move_to_folder_checkbox) {
+                //         var $list = $(rcmail.gui_objects.move_to_folder_list);
+                //
+                //         function handler() {
+                //             $list.attr('disabled', !rcmail.gui_objects.move_to_folder_checkbox.checked);
+                //             $copyTo.attr('disabled', rcmail.gui_objects.move_to_folder_checkbox.checked);
+                //         }
+                //         rcmail.gui_objects.move_to_folder_checkbox.onclick = handler;
+                //
+                //         handler();
+                //     }
+                // })();
+                //
+                // (function () {
+                //     if (rcmail.gui_objects.copy_to_folder_checkbox) {
+                //         var $list = $(rcmail.gui_objects.copy_to_folder_list);
+                //         function handler() {
+                //             $list.attr('disabled', !rcmail.gui_objects.copy_to_folder_checkbox.checked);
+                //             $moveTo.attr('disabled', rcmail.gui_objects.copy_to_folder_checkbox.checked);
+                //         }
+                //
+                //         rcmail.gui_objects.copy_to_folder_checkbox.onclick = handler;
+                //
+                //         handler();
+                //     }
+                // })();
             }
 
             rcmail.register_command('plugin.manageprocmail-add', function () {
