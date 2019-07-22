@@ -188,10 +188,9 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                 $rcube = rcube::get_instance();
 
                 if (rcube_charset::detect($reason, $rcube->config->get('default_charset', RCUBE_CHARSET)) === 'UTF-8') {
-                    $this->_action[] = '       -i"'
+                    $this->_action[] = '       -i"Subject: '
                         . Mail_mimePart::encodeHeader('Subject',
-                            $params['action-value']['subject'] . ' (Re: $SUBJECT)'
-                        )
+                            $params['action-value']['subject'], 'UTF-8')
                         . '" \\';
                     $this->_action[] =
                         '       -i"Content-Transfer-Encoding: quoted-printable" \\';
@@ -199,10 +198,9 @@ class Ingo_Script_Procmail_Recipe implements Ingo_Script_Item
                         '       -i"Content-Type: text/plain; charset=UTF-8" ; \\';
                     $reason = Mail_mimePart::encodeQP($reason);
                 } else {
-                    $this->_action[] = '       -i"'
+                    $this->_action[] = '       -i"Subject: '
                         . Mail_mimePart::encodeHeader('Subject',
-                            $params['action-value']['subject'] . ' (Re: $SUBJECT)'
-                        )
+                            $params['action-value']['subject'])
                         . '" ; \\';
                 }
                 $reason = addcslashes($reason, "\\\n\r\t\"`");
